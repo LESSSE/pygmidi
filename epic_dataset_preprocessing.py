@@ -10,18 +10,16 @@ import pymididatatools as pmdt
 import numpy as np
 from pypianoroll import Multitrack, Track
 from matplotlib import pyplot as plt
-from math import gcd
-
 
 # ## Folders
 
 # In[2]:
 
 
-root_f = "../../datasets/Epic Music/"
+root_f = "../epic_music_dataset/"
 base_f = root_f + "1-Midi_Base"
 block_f = root_f + "2-Midi_Blocks"
-trasn_f = root_f + "3-Midi_Transposed"
+trans_f = root_f + "3-Midi_Transposed"
 unif_f = root_f + "4-Midi_Unif"
 piarol_f = root_f + "5-Pianoroll"
 
@@ -30,8 +28,12 @@ piarol_f = root_f + "5-Pianoroll"
 
 # In[3]:
 
+#72 quartes -> least common muiltiple (4*2, 4*3, 4*4, 4* 4.5, 4*6)
+def gcd(a, b):
+    while b:
+        a, b = b, a%b
+    return a
 
-#72 quartes -> least common multiple (4*2, 4*3, 4*4, 4* 4.5, 4*6)
 def lcm(a):
     lcm1 = a[0]
     for i in a[1:]:
@@ -136,19 +138,19 @@ instruments = pmdt.Instrumentation(midi_to_track, track_to_midi,drums=percussion
 # In[6]:
 
 
-pmdt.slice_songs(base_f,block_f,ticks_per_slice)
+#pmdt.slice_songs(base_f,block_f,ticks_per_slice)
 
 
 # In[1]:
 
 
-pmdt.transpose_songs(block_f,trans_f,-6,6)
+#pmdt.transpose_songs(block_f,trans_f,-6,6)
 
 
 # In[2]:
 
 
-pmdt.unif_songs(trans_f,unif_f,instruments)
+#pmdt.unif_songs(trans_f,unif_f,instruments)
 
 
 # In[3]:
