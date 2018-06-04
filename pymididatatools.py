@@ -445,7 +445,6 @@ def count_ticks(src):
             sum2 = sum1
     return sum2
 
-
 # In[55]:
 
 
@@ -457,6 +456,9 @@ def count_quarters(src):
     
     return q
 
+def count_tracks(src):
+    pattern = gmidi.to(src,midi.Pattern)
+    return len(pattern)
 
 # ### Resolution Changer
 
@@ -486,7 +488,7 @@ def change_resolution(n_res,src, out=None):
 # In[63]:
 
 
-def slice_songs(path_old, path_new, ticks_per_clip, mode="chuncking",next_function=None):
+def slice_songs(path_old, path_new, ticks_per_clip, mode="chuncking",next_function=None, bi=0,ei=None, verbose=False):
     def next_sliding(b,e,midifile):
         return b+inc, b+inc+ticks_per_clip
     
@@ -500,18 +502,19 @@ def slice_songs(path_old, path_new, ticks_per_clip, mode="chuncking",next_functi
     
     n_files=0
     files = glob.glob('{}/*.mid*'.format(path_old))
-    for f in tqdm(sorted(files)):
+    for f in tqdm(sorted(files)[bi:ei]):
         b, e = 0, ticks_per_clip
         slices=0
         name=os.path.basename(f)
-        name=os.path.splitext(name)[0]
+        name=os.path.splitext(str(n_files).zfill(5)+name)[0]
         name=path_new+"/"+name
         old_pattern = midi.read_midifile(f) #old_pattern
         ticks = count_ticks(old_pattern)
         while(e < ticks):
             new_pattern = slice_midi(b,e,old_pattern)
             midi.write_midifile('{}-{}.mid'.format(name,str(slices)), new_pattern)
-            utils.eprint("\n",n_files,":",'{}-{}.mid'.format(name,str(slices)),"-",count_ticks(new_pattern))
+            if verbose:
+                utils.eprint("\n",n_files,":",'{}-{}.mid'.format(name,str(slices))," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
             slices += 1
             n_files += 1
             b,e = next_function(b,e,old_pattern)
@@ -520,16 +523,17 @@ def slice_songs(path_old, path_new, ticks_per_clip, mode="chuncking",next_functi
 # In[71]:
 
 
-def transpose_songs(path_old, path_new, minimum, maximum):
+def transpose_songs(path_old, path_new, minimum, maximum, bi=0,ei=None, verbose=False):
     files = glob.glob('{}/*.mid*'.format(path_old))
     n_files=0
-    for f in tqdm(sorted(files)):
+    for f in tqdm(sorted(files)[bi:ei]):
         for i in range(maximum-minimum):
             name=os.path.basename(f)
-            name=os.path.splitext(name)[0]
+            name=os.path.splitext(str(n_files).zfill(5)+name)[0]
             name=name+"-"+str(i)
             name=path_new+"/"+name+".mid"
-            utils.eprint("\n",n_files,":",name)
+            if verbose:
+                utils.eprint("\n",n_files,":",name," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
             transpose_midi(i-minimum,f,name)
             n_files+=1
 
@@ -537,30 +541,34 @@ def transpose_songs(path_old, path_new, minimum, maximum):
 # In[75]:
 
 
-def unif_songs(path_old, path_new, o2):
+def unif_songs(path_old, path_new, o2,bi=0,ei=None, verbose=False):
     files = glob.glob('{}/*.mid*'.format(path_old))
     n_files=0
-    for f in tqdm(sorted(files)):
+    for f in tqdm(sorted(files)[bi:ei]):
         name=os.path.basename(f)
-        name=os.path.splitext(name)[0]
+        name=os.path.splitext(str(n_files).zfill(5)+name)[0]
         old_pattern = midi.read_midifile(f) #old_pattern
         new_pattern = o2.orchestrate(old_pattern)
-        utils.eprint("\n",n_files,":",name,"-",count_ticks(new_pattern))
+        if verbose:
+            utils.eprint("\n",n_files,":",name," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
         midi.write_midifile('{}/{}.mid'.format(path_new,name), new_pattern)
         n_files+=1
 
 
 # In[60]:
 
-
-def pianoroll_songs(path_old, path_new):
+def pianoroll_songs(path_old, path_new,bi=0,ei=None, verbose=False):
     files = glob.glob('{}/*.mid*'.format(path_old))
-    for f in tqdm(sorted(files)):
+    n_files=0
+    for f in tqdm(sorted(files)[bi:ei]):
         name=os.path.basename(f)
         name=os.path.splitext(name)[0]
         pianoroll, a = midi_to_pianoroll(f)
+        if verbose:
+            utils.eprint("\n",n_files,":",'{}/{}{}'.format(path_new,name,"_pianoroll"),"|",'{}/{}{}'.format(path_new,name,"_sig")," - Ticks:",pianoroll.get_active_length()," - Tracks:",len(a))
         pianoroll.save('{}/{}{}'.format(path_new,name,"_pianoroll"))
-        np.save('{}/{}{}'.format(path_new,name,"_sig"),[a])        
+        np.save('{}/{}{}'.format(path_new,name,"_sig"),[a])
+        n_files+=1
 
 
 # _____________________
