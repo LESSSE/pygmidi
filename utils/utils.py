@@ -2,7 +2,7 @@ from __future__ import print_function
 import sys
 
 def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
+    print(*args, file=sys.stdout, **kwargs)
     
 def get_size(obj, seen=None):
     """Recursively finds size of objects"""
