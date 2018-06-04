@@ -158,7 +158,7 @@ def slice_midi(begin, end, src, out=None):
 
                     if time < begin:
                         pass
-                    elif time >= begin and time < end:
+                    elif time >= begin and time < end-1:
                         evt = evt.copy()
                         evt.tick = time - lastcmdtime[i]
                         n_track.append(evt)
@@ -171,7 +171,7 @@ def slice_midi(begin, end, src, out=None):
                         evt = evt.copy()
                         evt.tick = 0
                         n_track.append(evt)
-                    elif time >= begin and time < end:
+                    elif time >= begin and time < end-1:
                         evt = evt.copy()
                         evt.tick = time-lastcmdtime[i]
                         n_track.append(evt)
