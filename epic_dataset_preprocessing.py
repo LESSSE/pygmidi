@@ -156,7 +156,7 @@ instruments = pmdt.Instrumentation(midi_to_track, track_to_midi,drums=percussion
 # In[3]:
 
 
-pmdt.pianoroll_songs(unif_f,piarol_f)
+pmdt.pianoroll_songs(unif_f,piarol_f,verbose=True,bi=600)
 
 
 # ____________________________________
