@@ -104,7 +104,9 @@ class gmidi:
 # ### Automatic MIDI Slicer
 
 # In[48]:
-
+#Slice begin: first tick to be recorded, all events happening in this tick will be included
+#Slice end: first tick that will be not recorded
+#Slice size: it will have *end-begin+1*
 
 def slice_midi(begin, end, src, out=None):
     '''Clip a midifile from a 'begin' tick to the 'end' tick.'''
@@ -126,10 +128,12 @@ def slice_midi(begin, end, src, out=None):
     lastcmdtime = [begin for t in o_pattern]
     time = 0
 
+    end = end-7
+
     condition = (time <= begin)
     while condition:
-
-        if time > end:
+	
+        if time >= end-1:
             condition = False
             break
 
@@ -203,11 +207,10 @@ def slice_midi(begin, end, src, out=None):
         p = playing[u]
         for n in p:
             time=end-1
-            evt = midi.NoteOffEvent(tick=time-lastcmdtime[u], pitch=n,channel=p[n]['channel'],velocity=0)
+            evt = midi.NoteOffEvent(tick=time-lastcmdtime[u], pitch=n,channel=p[n]['channel'])
             n_track.append(evt)
             lastcmdtime[u] = time                             
-
-        eot = midi.EndOfTrackEvent(tick=1)
+        eot = midi.EndOfTrackEvent(tick=7)
         n_track.append(eot)
 
     return gmidi.to(n_pattern,out)
@@ -505,16 +508,16 @@ def slice_songs(path_old, path_new, ticks_per_clip, mode="chuncking",next_functi
     for f in tqdm(sorted(files)[bi:ei]):
         b, e = 0, ticks_per_clip
         slices=0
-        name=os.path.basename(f)
-        name=os.path.splitext(str(n_files).zfill(5)+name)[0]
-        name=path_new+"/"+name
         old_pattern = midi.read_midifile(f) #old_pattern
         ticks = count_ticks(old_pattern)
         while(e < ticks):
+            name=os.path.basename(f)
+            name=os.path.splitext(str(n_files).zfill(5)+name)[0]
+            name=path_new+"/"+name
             new_pattern = slice_midi(b,e,old_pattern)
-            midi.write_midifile('{}-{}.mid'.format(name,str(slices)), new_pattern)
+            midi.write_midifile('{}-{}.mid'.format(name,str(slices).zfill(3)), new_pattern)
             if verbose:
-                utils.eprint("\n",n_files,":",'{}-{}.mid'.format(name,str(slices))," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
+                utils.eprint("\n",n_files,":",'{}-{}.mid'.format(name,str(slices).zfill(3))," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
             slices += 1
             n_files += 1
             b,e = next_function(b,e,old_pattern)
@@ -530,10 +533,10 @@ def transpose_songs(path_old, path_new, minimum, maximum, bi=0,ei=None, verbose=
         for i in range(maximum-minimum):
             name=os.path.basename(f)
             name=os.path.splitext(str(n_files).zfill(5)+name)[0]
-            name=name+"-"+str(i)
+            name=name+"-"+str(i).zfill(3)
             name=path_new+"/"+name+".mid"
             if verbose:
-                utils.eprint("\n",n_files,":",name," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
+                utils.eprint("\n",n_files,":",name)
             transpose_midi(i-minimum,f,name)
             n_files+=1
 
@@ -546,7 +549,7 @@ def unif_songs(path_old, path_new, o2,bi=0,ei=None, verbose=False):
     n_files=0
     for f in tqdm(sorted(files)[bi:ei]):
         name=os.path.basename(f)
-        name=os.path.splitext(str(n_files).zfill(5)+name)[0]
+        name=os.path.splitext(name)[0]
         old_pattern = midi.read_midifile(f) #old_pattern
         new_pattern = o2.orchestrate(old_pattern)
         if verbose:
@@ -569,7 +572,6 @@ def pianoroll_songs(path_old, path_new,bi=0,ei=None, verbose=False):
         pianoroll.save('{}/{}{}'.format(path_new,name,"_pianoroll"))
         np.save('{}/{}{}'.format(path_new,name,"_sig"),[a])
         n_files+=1
-
 
 # _____________________
 

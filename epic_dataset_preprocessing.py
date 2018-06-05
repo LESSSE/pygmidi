@@ -15,7 +15,6 @@ from matplotlib import pyplot as plt
 
 # In[2]:
 
-
 root_f = "../epic_music_dataset/"
 base_f = root_f + "1-Midi_Base"
 block_f = root_f + "2-Midi_Blocks"
@@ -137,26 +136,21 @@ instruments = pmdt.Instrumentation(midi_to_track, track_to_midi,drums=percussion
 
 # In[6]:
 
-
-#pmdt.slice_songs(base_f,block_f,ticks_per_slice)
-
+print("Slices")
+pmdt.slice_songs(base_f,block_f,ticks_per_slice,verbose=True)
 
 # In[1]:
-
-
-#pmdt.transpose_songs(block_f,trans_f,-6,6)
+print("Transpose")
+pmdt.transpose_songs(block_f,trans_f,-6,6,verbose=True)
 
 
 # In[2]:
-
-
-#pmdt.unif_songs(trans_f,unif_f,instruments)
+print("Unify")
+pmdt.unif_songs(trans_f,unif_f,instruments,verbose=True)
 
 
 # In[3]:
-
-
-pmdt.pianoroll_songs(unif_f,piarol_f,verbose=True,bi=600)
-
+print("Pianoroll")
+pmdt.pianoroll_songs(unif_f,piarol_f,verbose=True)
 
 # ____________________________________

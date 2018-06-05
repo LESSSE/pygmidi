@@ -1,4 +1,7 @@
 *.ipynb
 __*
 *.log
-
+*.mid
+*.mid*
+.*
+!.gitignore
