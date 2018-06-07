@@ -13,8 +13,6 @@
 # 
 # >**Automatic Midi Track Unifier**: cronverts a midi file in a new midi file with a fixed number of tracks using a intrument mapping
 # 
-# >**Automatic Midi to and from PianoRoll Converters**: these take into account the orquestration that you want to use and use note velocity
-# 
 # >**Midi Counters**: fuctions to count ticks and quavers in a midi file
 # 
 # >**Resolution Changer**: function to change midi resolution (number of ticks in a quarter or crotchet note)
@@ -23,11 +21,12 @@
 # 
 # These operators allow to translate a set of heterogeneous midi files into a set of fixed size and similar orquestrated midi files.
 
-# In[72]:
+# In[1]:
 
 
 import numpy as np
 import math
+
 import gc
 import os.path
 import shutil
@@ -35,6 +34,7 @@ import pretty_midi
 import midi
 import utils.utils as utils
 import glob
+import pypianoroll
 from pypianoroll import Multitrack, Track
 from tqdm import tqdm
 from matplotlib import pyplot as plt
@@ -42,52 +42,138 @@ from matplotlib import pyplot as plt
 #np.set_printoptions(threshold=np.inf) 
 
 
-# In[73]:
-
-
-temp_file = "temp.mid"
-
-
 # ## Inter Midi Classes Converters
 
-# In[47]:
+# In[16]:
 
 
 class gmidi:
+    def iterable(src):
+        if gmidi.ismidi(src):
+            src = [src]
+        elif src is list:
+            for i in src:
+                if not gmidi.ismidi(i):
+                    gmidi.typeError()
+        else:
+            gmidi.typeError()
+        return src
+    
+    def typeError():
+        raise TypeError('Unknown Type:'+str(type(src))+'is no python-midi.Pattern, pretty-midi.PrettyMIDI nor str')
+    
+    def ismidi(src):
+        if isinstance(src,midi.Pattern) or isinstance(src,pretty_midi.PrettyMIDI) or isinstance(src,Multitrack) or type(src):
+            return True
+        else:
+            return False
+    
     def save(src,path):
         if isinstance(src,midi.Pattern):
             midi.write_midifile(path, src)
         elif isinstance(src,pretty_midi.PrettyMIDI):
             src.write(path)
+        elif isinstance(src,Multitrack):
+            src.write(path)
         elif type(src) is str:
             shutil.copy(src, path)
         else:
-             raise TypeError('Unknown Type:'+str(type(src))+'is no python-midi.Pattern, pretty-midi.PrettyMIDI nor str')
-        
+            gmidi.typeError()
         return path
+    
+    def get_instruments(src):
+        '''Returns a binary array that represent the playing tracks of the midi file'''
+        pattern = gmidi.to(src,midi.Pattern)
+        pretty = gmidi.to(src,pretty_midi.PrettyMIDI)
         
+        if len(pattern) != len(pretty.instruments):
+            gmidi.to(pretty,src)
+            pattern = gmidi.to(src,midi.Pattern)
+
+        posns = [0 for track in pattern] #position in the list of events of each track
+        instruments = [[False,0,False] for track in pattern]#[used,program,drums]
+
+        for i in range(len(pattern)): #For each track
+            track = pattern[i]
+            pos = posns[i]
+            evt = track[pos]
+            while not instruments[i][0]:
+                if isinstance(evt, midi.NoteOnEvent) and evt.data[1]!=0:
+                    instruments[i][0]=True
+                elif isinstance(evt, midi.ProgramChangeEvent):
+                    instruments[i][1]=evt.data[0]
+                    if evt.channel == 9:
+                        instruments[i][2]=True
+                try:
+                    posns[i] += 1 
+                    pos = posns[i]
+                    evt = track[pos]
+                except IndexError:
+                    break
+        return instruments
+
+    def load_multitrack(path):
+        mul = Multitrack(path,name=os.path.basename(path))
+        ins = gmidi.get_instruments(path)
+        
+        if not ins[0][0] and not ins[0][1] and not ins[0][2]:
+            ins = ins[1:]
+        
+        j=0
+        tracks = []
+        for i in ins:
+            if i[0] == 0:
+                program = i[1]
+                is_drum = i[2]
+                name = pretty_midi.program_to_instrument_name(program)
+                if is_drum:
+                    name = "Drums"
+                t = Track(np.zeros(mul.tracks[0].pianoroll.shape,np.int8), program,is_drum,name)
+                tracks += [t]
+            else:
+                program = i[1]
+                is_drum = i[2]
+                name = pretty_midi.program_to_instrument_name(program)
+                if is_drum:
+                    name = "Drums"
+                mul.tracks[j].name=name
+                tracks += [mul.tracks[j]]
+                j+=1
+        mul = Multitrack(tracks=tracks,tempo=mul.tempo, downbeat=mul.downbeat, beat_resolution=mul.beat_resolution, name=mul.name)
+        
+        return mul
+    
     def load(path,out):
         if out is midi.Pattern:
             midi_data = midi.read_midifile(path)
         elif out is pretty_midi.PrettyMIDI:
             midi_data = pretty_midi.PrettyMIDI(path)
+        elif out is Multitrack:
+            midi_data = gmidi.load_multitrack(path)
         elif type(out) is str:
             shutil.copy(path, out)
             midi_data = out
         else:
-            raise TypeError('Unknown Type:'+str(type(src))+'is no python-midi.Pattern, pretty-midi.PrettyMIDI nor str')
+            gmidi.typeError()
         
         return midi_data
         
-    
     def to(src,out):
+        temp_file = "temp.mid"
+        
         if type(out) is type and isinstance(src,out):
             return src
-        else:
+        elif type(src) != str:
             gmidi.save(src,temp_file)
-            midi_data=gmidi.load(temp_file,out)
+        else:
+            temp_file = src
+            
+        midi_data=gmidi.load(temp_file,out)
+        
+        if type(src) != str:
             os.remove(temp_file)
-            return midi_data
+            
+        return midi_data
         
     def default_out(src):
         if type(src) is str:
@@ -96,163 +182,28 @@ class gmidi:
             return pretty_midi.PrettyMIDI
         elif isinstance(src,midi.Pattern):
             return midi.Pattern
+        elif isinstance(src,Multitrack):
+            return Multitrack
         else:
-            raise TypeError('Unknown Type:'+str(type(src))+'is no python-midi.Pattern, pretty-midi.PrettyMIDI nor str')
+            gmidi.typeError()
         
 
 
-# ### Automatic MIDI Slicer
-
-# In[48]:
-#Slice begin: first tick to be recorded, all events happening in this tick will be included
-#Slice end: first tick that will be not recorded
-#Slice size: it will have *end-begin+1*
-
-def slice_midi(begin, end, src, out=None):
-    '''Clip a midifile from a 'begin' tick to the 'end' tick.'''
-    if out is None:
-        out = gmidi.default_out(src)
-        
-    o_pattern = gmidi.to(src,midi.Pattern)
-    n_pattern = midi.Pattern()
-    n_pattern.resolution = o_pattern.resolution
-
-    for t in range(len(o_pattern)):
-        track = midi.Track()
-        n_pattern.append(track)
-
-    timeleft = [track[0].tick for track in o_pattern] #array with time for the next event for each track
-    posns = [0 for track in o_pattern] #position in the list of events of each track
-    playing = [{} for track in o_pattern]
-    first_cmd = [True for track in o_pattern]
-    lastcmdtime = [begin for t in o_pattern]
-    time = 0
-
-    end = end-7
-
-    condition = (time <= begin)
-    while condition:
-	
-        if time >= end-1:
-            condition = False
-            break
-
-        for i in range(len(timeleft)): #For each track
-            o_track = o_pattern[i]
-            n_track = n_pattern[i]
-
-            if not condition:
-                break
-            if time == begin:
-                p = playing[i]
-                for n in p:
-                    evt = midi.NoteOnEvent(tick=0, pitch=n,channel=p[n]['channel'],velocity=p[n]['velocity'])
-                    n_track.append(evt)
-                    lastcmdtime[i] = time
-
-            while timeleft[i] == 0:                    
-                pos = posns[i]
-                evt = o_track[pos]
-
-                if isinstance(evt, midi.NoteEvent):
-                    if isinstance(evt, midi.NoteOnEvent):
-                        playing[i][evt.pitch] = {'velocity': evt.velocity, 'channel': evt.channel}
-                    else:
-                        playing[i].pop(evt.pitch)
-
-                    if time < begin:
-                        pass
-                    elif time >= begin and time < end-1:
-                        evt = evt.copy()
-                        evt.tick = time - lastcmdtime[i]
-                        n_track.append(evt)
-                        lastcmdtime[i] = time
-                    else:
-                        condition = False
-                        break
-                elif isinstance(evt, midi.Event):
-                    if time < begin:
-                        evt = evt.copy()
-                        evt.tick = 0
-                        n_track.append(evt)
-                    elif time >= begin and time < end-1:
-                        evt = evt.copy()
-                        evt.tick = time-lastcmdtime[i]
-                        n_track.append(evt)
-                        lastcmdtime[i] = time
-                    else:
-                        condition = False
-                        break
+# In[3]:
 
 
-                try:
-                    timeleft[i] = o_track[pos + 1].tick
-                    posns[i] += 1
-                except IndexError:
-                    timeleft[i] = None
-
-        if all(t is None for t in timeleft):
-            break
-        
-        next_evt=min(list(filter(lambda x: x is not None, timeleft)))
-        
-        for i in range(len(timeleft)): #For each track
-            if timeleft[i] is not None:
-                timeleft[i] -= next_evt
-
-        time += next_evt
-
-    for u in range(len(n_pattern)):
-        n_track = n_pattern[u]
-        p = playing[u]
-        for n in p:
-            time=end-1
-            evt = midi.NoteOffEvent(tick=time-lastcmdtime[u], pitch=n,channel=p[n]['channel'])
-            n_track.append(evt)
-            lastcmdtime[u] = time                             
-        eot = midi.EndOfTrackEvent(tick=7)
-        n_track.append(eot)
-
-    return gmidi.to(n_pattern,out)
-
-
-# ### Automatic MIDI Transposer
-
-# In[49]:
-
-
-#transpose to the sametone vs all tones
-def transpose_midi(semitones, src, out=None):
-    """"""
-    if out is None:
-        out = gmidi.default_out(src)
+def count_ticks(src):
+    mul = gmidi.to(src,Multitrack)
     
-    pretty = gmidi.to(src,pretty_midi.PrettyMIDI)
-        
-    for instrument in pretty.instruments:
-        # Don't want to shift drum notes
-        if not instrument.is_drum:
-            notes = instrument.notes
-            n = 0
-            while n < len(notes):
-                notes[n].pitch += semitones
-                if notes[n].pitch not in range(127):
-                    notes.pop(n)
-                    n-=1
-                n+=1
-                
-    return gmidi.to(pretty,out)
-   
-    
+    return mul.tracks[0].pianoroll.shape[0]
 
 
 # ### Automatic Midi Track Unifier
 
-# In[50]:
+# In[4]:
 
 
 class Instrumentation:
-    
     def __init__(self, dic, array, drums=8):
         self.tracks = len(array)
         self.i_to_t = dic
@@ -262,109 +213,32 @@ class Instrumentation:
             raise ValueError('Destination tracks in dic must be one of represented in array - all(i_to_t[k] <= len(t_to_i) for k in i_to_t)')
 
     def orchestrate(self,src,out=None):
-        def add_control_cmds(u,n_track):
-            n_track.append(midi.ControlChangeEvent(tick=0, channel=self.t_to_i[u][0], data=[121, 0])) #reset channel definitions
-            if self.t_to_i[u][1]>=0:
-                n_track.append(midi.ProgramChangeEvent(tick=0,channel=self.t_to_i[u][0],data=[self.t_to_i[u][1]])) #instrument
-            n_track.append(midi.ControlChangeEvent(tick=0, channel=self.t_to_i[u][0], data=[7, 80]))  #volume
-            n_track.append(midi.ControlChangeEvent(tick=0, channel=self.t_to_i[u][0], data=[10, 64])) #span centered
-            n_track.append(midi.ControlChangeEvent(tick=0, channel=self.t_to_i[u][0], data=[91, 10])) #reverb 
-            n_track.append(midi.ControlChangeEvent(tick=0, channel=self.t_to_i[u][0], data=[93, 10])) #reverb chorus
-            n_track.append(midi.PortEvent(tick=0, data=[0]))
-
         if out is None:
             out = gmidi.default_out(src)
 
-        o_pattern = gmidi.to(src,midi.Pattern)    
-        n_pattern = midi.Pattern() #new_pattern
-        n_pattern.resolution = o_pattern.resolution 
-        for t in range(self.tracks): 
-            track = midi.Track()
-            n_pattern.append(track)
-
-        timeleft = [track[0].tick for track in o_pattern] #array with time for the next event for each track
-        posns = [0 for track in o_pattern] #position in the list of events of each track
-        track_destin = [False for track in o_pattern]
-        first_cmd = [True for track in n_pattern]
-        lastcmdtime = [0 for t in n_pattern]
-        time = 0
+        mul = gmidi.to(src,Multitrack)
+        new_mul = pypianoroll.copy(mul)
         
-        condition = True
-        while condition:
-            for i in range(len(o_pattern)): #For each track
-                if not condition:
-                    break
-                while timeleft[i] == 0:
-                    o_track = o_pattern[i]
-                    pos = posns[i]
-                    evt = o_track[pos]
-                    u = track_destin[i]
-                    
-                    if isinstance(evt, midi.NoteEvent): #if it is a note event
-                        if u is False: #Destination track defined then it must be equal to the upper one
-                            track_destin[i] = track_destin[i-1]
-                            u = track_destin[i]
-                        if u is False or u is None: #If it continues not defined or it must not go to none of the tracks
-                            pass
-                        else:
-                            if first_cmd[u]:
-                                n_track = n_pattern[u]
-                                add_control_cmds(u,n_track)
-                                first_cmd[u] = False
-                                
-                            time_interval = (time - lastcmdtime[u])
-                            evt.tick=time_interval
-                            evt.channel=self.t_to_i[u][0]
-                            n_track = n_pattern[u]
-                            n_track.append(evt)
-                            lastcmdtime[u] = time
-                            
-                    elif isinstance(evt, midi.ProgramChangeEvent):
-                        if evt.channel == 9:
-                            track_destin[i]=self.drums
-                        else:
-                            track_destin[i]=self.i_to_t.get(evt.data[0],None)
-                            
-                    elif isinstance(evt, midi.TimeSignatureEvent) or isinstance(evt, midi.SetTempoEvent):
-                            if u is None:
-                                u = 0
-                            if first_cmd[u]:
-                                n_track = n_pattern[u]
-                                add_control_cmds(u,n_track)
-                                first_cmd[u] = False    
-                            n_track = n_pattern[u]
-                            n_track.append(evt)
-                            lastcmdtime[u] = time
-                    else:
-                        pass
-                    
-                    try:
-                        timeleft[i] = o_track[pos + 1].tick
-                        posns[i] += 1
-                    except IndexError:
-                        timeleft[i] = None
-
-
-            if all(t is None for t in timeleft):
-                break
-
-            next_evt=min(list(filter(lambda x: x is not None, timeleft)))
-
-            for i in range(len(timeleft)): #For each track
-                if timeleft[i] is not None:
-                    timeleft[i] -= next_evt
-
-            time += next_evt
-
-        for u in range(len(n_pattern)):
-            n_track = n_pattern[u]
-            if first_cmd[u]:
-                add_control_cmds(u,n_track)
-                first_cmd[u] = False 
-            eot = midi.EndOfTrackEvent(tick=1)
-            n_track.append(eot)
-            
-        return gmidi.to(n_pattern,out)
+        new_mul.tracks=[]
+        #print([i.name for i in new_mul.tracks])
+        for t in range(len(self.t_to_i)):
+            program = self.t_to_i[t][0]
+            is_drum = self.t_to_i[t][1]
+            name = pretty_midi.program_to_instrument_name(program)
+            if is_drum:
+                name = "Drums"
+        
+            new_mul.tracks += [Track(np.zeros(mul.tracks[0].pianoroll.shape,np.int8), program,is_drum,name)]
+            #print([i.name for i in new_mul.tracks])
+            if is_drum:
+                check = lambda x,t: x.is_drum
+            else:
+                check = lambda x,t: self.i_to_t.get(x.program,None) == t and not x.is_drum
+            for i in mul.tracks:
+                if check(i,t):
+                    new_mul.tracks += [i]
+            new_mul.merge_tracks(list(range(t,len(new_mul.tracks))),program=program,is_drum=is_drum,name=name,remove_merged=True) 
+        return gmidi.to(new_mul,out)
     
     def original_instruments_in_track(self,n):
         list = []
@@ -377,95 +251,95 @@ class Instrumentation:
         return pretty_midi.instrument_name_to_program(self.t_to_i[n])
 
 
-# ### Automatic Midi to and from PianoRoll Converters
+# ### Automatic MIDI Slicer
 
-# In[51]:
-
-
-def get_signature(src):
-    '''Returns a binary array that represent the playing tracks of the midi file'''
-    pattern = gmidi.to(src,midi.Pattern)
-
-    posns = [0 for track in pattern] #position in the list of events of each track
-    used = np.array([0 for track in pattern])
-    
-    for i in range(len(pattern)): #For each track
-        track = pattern[i]
-        pos = posns[i]
-        evt = track[pos]
-        while not used[i]:
-            if isinstance(evt, midi.NoteOnEvent):
-                used[i]=1
-            try:
-                posns[i] += 1 
-                pos = posns[i]
-                evt = track[pos]
-            except IndexError:
-                break
-                
-    return used
+# In[5]:
 
 
-# In[52]:
-
-
-def midi_to_pianoroll(src):
-    midifile = "midifile.mid"
-    midifile = gmidi.to(src,midifile)
-
-    signature = get_signature(midifile)
-    pianoroll = Multitrack(midifile)
-    
-    os.remove(midifile)
-    
-    return pianoroll, signature
-
-
-# In[53]:
-
-
-def pianoroll_to_midi(pianoroll,signature,out):  
-    midifile = "midifile.mid"
-    pianoroll.write(midifile)
+def truncate_midi(src, begin, end, out=None):
+    '''Clip a midifile from a 'begin' tick to the 'end' tick.'''
+    if out is None:
+        out = gmidi.default_out(src)
         
-    return gmidi.to(midifile, out)
-
-
-# ### Counters
-
-# In[54]:
-
-
-def count_ticks(src):
-    pattern = gmidi.to(src,midi.Pattern)
+    mul = gmidi.to(src,Multitrack)
     
-    sum2 = 0
-    for i in pattern:
-        sum1 = 0
-        for n in i:
-            sum1 += n.tick
-        if sum1 > sum2:
-            sum2 = sum1
-    return sum2
-
-# In[55]:
-
-
-def count_quarters(src):
-    pattern = gmidi.to(src,midi.Pattern)
+    mul = pypianoroll.copy(mul)
     
-    t = count_ticks(pattern)
-    q = t/pattern.resolution
-    
-    return q
+    for i in mul.tracks:
+        i.pianoroll = i.pianoroll[begin:end]
+   
+    return gmidi.to(mul,out)
 
-def count_tracks(src):
-    pattern = gmidi.to(src,midi.Pattern)
-    return len(pattern)
+
+# In[6]:
+
+
+def slice_midi(src, ticks_per_clip, mode="chuncking",next_function=None):
+    def next_sliding(b,e,midifile):
+        return b+inc, b+inc+ticks_per_clip
+    
+    if next_function==None:
+        if mode=="chuncking":
+            inc = ticks_per_clip
+            next_function=next_sliding
+        elif mode=="sliding":
+            inc = midifile.resolution
+            next_function =next_sliding
+
+    midis=[]
+    n = 0
+    b, e = 0, ticks_per_clip
+    mul = gmidi.to(src,Multitrack) #old_pattern
+    ticks = count_ticks(mul)
+    while(e < ticks):
+        new_mul = truncate_midi(mul,b,e)
+        new_mul.name = os.path.splitext(new_mul.name)[0]+"-"+str(n)
+        midis+=[new_mul]    
+        b,e = next_function(b,e,mul)
+        n+=1
+    
+    return midis
+
+
+# ### Automatic MIDI Transposer
+
+# In[7]:
+
+
+#transpose to the sametone vs all tones
+def transpose(src, semitones, out=None):
+    """"""
+    if out is None:
+        out = gmidi.default_out(src)
+    
+    mul = gmidi.to(src,Multitrack)
+    mul = pypianoroll.copy(mul)
+    for i in mul.tracks:
+        pypianoroll.transpose(i,semitones)
+                
+    return gmidi.to(mul,out)
+
+
+# In[8]:
+
+
+def transpose_midi(src, minimum, maximum, out=None):
+    """"""
+    midis = []
+    n = 0
+    mul = gmidi.to(src,Multitrack) #old_pattern
+    for i in range(maximum-minimum):
+        new_mul = transpose(src,i-minimum)
+        new_mul.name = os.path.splitext(new_mul.name)[0]+"-"+str(n)
+        midis+=[new_mul] 
+        n+=1
+                
+    return midis
+
 
 # ### Resolution Changer
 
-# In[56]:
+# In[9]:
 
 
 def change_resolution(n_res,src, out=None):
@@ -488,108 +362,180 @@ def change_resolution(n_res,src, out=None):
 
 # ## Iterative Functions
 
-# In[63]:
-
-
-def slice_songs(path_old, path_new, ticks_per_clip, mode="chuncking",next_function=None, bi=0,ei=None, verbose=False):
-    def next_sliding(b,e,midifile):
-        return b+inc, b+inc+ticks_per_clip
-    
-    if next_function==None:
-        if mode=="chuncking":
-            inc = ticks_per_clip
-            next_function=next_sliding
-        elif mode=="sliding":
-            inc = midifile.resolution
-            next_function =next_sliding
-    
-    n_files=0
-    files = glob.glob('{}/*.mid*'.format(path_old))
-    for f in tqdm(sorted(files)[bi:ei]):
-        b, e = 0, ticks_per_clip
-        slices=0
-        old_pattern = midi.read_midifile(f) #old_pattern
-        ticks = count_ticks(old_pattern)
-        while(e < ticks):
-            name=os.path.basename(f)
-            name=os.path.splitext(str(n_files).zfill(5)+name)[0]
-            name=path_new+"/"+name
-            new_pattern = slice_midi(b,e,old_pattern)
-            midi.write_midifile('{}-{}.mid'.format(name,str(slices).zfill(3)), new_pattern)
-            if verbose:
-                utils.eprint("\n",n_files,":",'{}-{}.mid'.format(name,str(slices).zfill(3))," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
-            slices += 1
-            n_files += 1
-            b,e = next_function(b,e,old_pattern)
-
-
-# In[71]:
-
-
-def transpose_songs(path_old, path_new, minimum, maximum, bi=0,ei=None, verbose=False):
-    files = glob.glob('{}/*.mid*'.format(path_old))
-    n_files=0
-    for f in tqdm(sorted(files)[bi:ei]):
-        for i in range(maximum-minimum):
-            name=os.path.basename(f)
-            name=os.path.splitext(str(n_files).zfill(5)+name)[0]
-            name=name+"-"+str(i).zfill(3)
-            name=path_new+"/"+name+".mid"
-            if verbose:
-                utils.eprint("\n",n_files,":",name)
-            transpose_midi(i-minimum,f,name)
-            n_files+=1
-
-
-# In[75]:
-
-
-def unif_songs(path_old, path_new, o2,bi=0,ei=None, verbose=False):
-    files = glob.glob('{}/*.mid*'.format(path_old))
-    n_files=0
-    for f in tqdm(sorted(files)[bi:ei]):
-        name=os.path.basename(f)
-        name=os.path.splitext(name)[0]
-        old_pattern = midi.read_midifile(f) #old_pattern
-        new_pattern = o2.orchestrate(old_pattern)
-        if verbose:
-            utils.eprint("\n",n_files,":",name," - Ticks:",count_ticks(new_pattern)," - Tracks:", count_tracks(new_pattern))
-        midi.write_midifile('{}/{}.mid'.format(path_new,name), new_pattern)
-        n_files+=1
-
-
-# In[60]:
-
-def pianoroll_songs(path_old, path_new,bi=0,ei=None, verbose=False):
-    files = glob.glob('{}/*.mid*'.format(path_old))
-    n_files=0
-    for f in tqdm(sorted(files)[bi:ei]):
-        name=os.path.basename(f)
-        name=os.path.splitext(name)[0]
-        pianoroll, a = midi_to_pianoroll(f)
-        if verbose:
-            utils.eprint("\n",n_files,":",'{}/{}{}'.format(path_new,name,"_pianoroll"),"|",'{}/{}{}'.format(path_new,name,"_sig")," - Ticks:",pianoroll.get_active_length()," - Tracks:",len(a))
-        pianoroll.save('{}/{}{}'.format(path_new,name,"_pianoroll"))
-        np.save('{}/{}{}'.format(path_new,name,"_sig"),[a])
-        n_files+=1
-
 # _____________________
 
-# In[16]:
+# In[10]:
 
 
-def Multitrack_to_tensor(multitrack,signature):
+def multitrack_to_bool_tensor(multitrack):
     mt = multitrack
-    s = signature
     tensor = []
-    j=0
-    for i in s:
-        if i == 0:
-            tensor += [np.zeros((3456,128))]
-        else:
-            tensor += [mt.tracks[j].pianoroll]
-            j+=1
-    return tensor
+    for t in mt.tracks:
+        tensor += [t.pianoroll]
+    t = np.array(tensor)
+    #(tracks,timesteps,notes)
+    t = np.swapaxes(t,0,1)
+    #(timesteps,tracks,notes)
+    t = np.swapaxes(t,1,2)
+    #(timesteps,notes,tracks)
+    t = np.reshape(t,(t.shape[0]//96,96,t.shape[1],t.shape[2]))
+            
+    return t
+
+
+# _______________________________________________________________________________________
+
+# In[11]:
+
+
+root_f = "../epic_music_dataset/"
+base_f = root_f + "1-Midi_Base"
+unif_f = root_f + "2-Midi_Unif"
+data_f = root_f + "3-Midi_Processed"
+
+
+# ## Slicing Parameters
+
+# In[12]:
+
+
+#72 quartes -> least common multiple (4*2, 4*3, 4*4, 4* 4.5, 4*6)
+def gcd(a, b):
+    """Calculate the Greatest Common Divisor of a and b.
+
+    Unless b==0, the result will have the same sign as b (so that when
+    b is divided by it, the result comes out positive).
+    """
+    while b:
+        a, b = b, a%b
+    return a
+
+def lcm(a):
+    lcm1 = a[0]
+    for i in a[1:]:
+        lcm1 = lcm1*(i//gcd(lcm1, i))
+    return lcm1
+        
+number_bar = 8
+beats_per_bar = [2,3,4]
+divisions_per_beat = [1,2,3,4,6,8]
+resolution = lcm(divisions_per_beat)
+for i in range(len(beats_per_bar)):
+    beats_per_bar += [int(beats_per_bar[i]*number_bar)]
+
+ticks_per_slice = lcm(beats_per_bar) * resolution
+print(ticks_per_slice)
+
+
+# ## Orchestration Parameters
+
+# In[13]:
+
+
+#7 Tracks
+flutes = 0
+oboes = 0
+clarinets = 0
+saxofones = 0
+bassoon = 0
+french_horns = 1
+trumpets = 1
+tubas = 1
+percussion = 2
+timpani = 3
+tubular_bells = 4
+chromatic_perc = 4
+harp = 6
+piano = 7
+organ = 7
+voices = 5
+guitars = 6
+basses  = 6
+strings = 6
+
+
+#intruments to atribute to each one of the new tracks
+track_to_midi = [[71,False], #woods
+               [60,False], #brass
+               [0,True],  #percussion
+               [47,False], #timpani
+               [14,False], #tubular bells 
+               [52,False], #voices 
+               [48,False], #strings
+               [1,False]] #piano
+
+
+# In[14]:
+
+
+#maps one midi instrument code to the respective destination track
+midi_to_track = { 72: flutes, 73: flutes, 74: flutes, 75: flutes, 76: flutes, 77: flutes, 78: flutes, 79: flutes, #flutes and piccolos
+                    68: oboes, 69: oboes, #oboe and french horn
+                    71: clarinets, #clarinets
+                    64: saxofones, 65: saxofones, 66: saxofones, 67: saxofones, #saxofone
+                    70: bassoon, # bassoon
+                    60: french_horns, 61: french_horns, 62: french_horns, 63: french_horns, #french horns
+                    56: trumpets, 59: trumpets, #trumpets
+                    57: tubas, 58: tubas, #tuba and trombones
+                    112: percussion, 113: percussion, 114: percussion, 115: percussion, 116: percussion, 117: percussion, 118: percussion, 119: percussion, #percussive
+                    47: timpani, #timpani
+                    14: tubular_bells, #tubular bells
+                    8 : chromatic_perc, 9 : chromatic_perc, 10: chromatic_perc, 11: chromatic_perc, 12: chromatic_perc, 13: chromatic_perc, #chromatic perc
+                    46: harp, #harp
+                    0 : piano, 1 : piano, 2 : piano, 3 : piano, 4 : piano, 5 : piano, 6 : piano, 7 : piano, 15: piano, #piano and keyboard
+                    16: organ, 17: organ, 18: organ, 19: organ, 20: organ, 21: organ, 22: organ, 23: organ, #accordion and organ
+                    52: voices, 53: voices, 54: voices, #voices
+                    24: guitars, 25: guitars, 26: guitars, 27: guitars, 28: guitars, 29: guitars, 30: guitars, 31: guitars, #guitars
+                    32: basses, 33: basses, 34: basses, 35: basses, 36: basses, 37: basses, 38: basses, 39: basses, #basses
+                    40: strings, 41: strings, 42: strings, 43: strings, 48: strings, 49: strings, 50: strings, 51: strings, 55: strings, 44: strings, 45: strings,#strings
+                  }
+
+instruments = Instrumentation(midi_to_track, track_to_midi,drums=percussion)
+
+
+# ______________________________________
+# 
+# ## Pre-Processing
+
+# In[17]:
+
+
+#Unification
+path_old = base_f  
+path_new = unif_f 
+o2=instruments
+
+files = glob.glob('{}/*.mid*'.format(path_old))
+n_files=0
+for f in tqdm(sorted(files)):
+    name=os.path.basename(f)
+    name=os.path.splitext(name)[0]
+    mul = o2.orchestrate(f,'{}/{}.mid'.format(path_new,name))
+    utils.eprint("\n",n_files,":",name)
+    n_files+=1
+
+
+# In[18]:
+
+
+#Process
+path_old = unif_f
+path_new = data_f
+ticks_per_clip = ticks_per_slice
+
+files = glob.glob('{}/*.mid*'.format(path_old))
+data = []
+n_files=0
+for f in tqdm(sorted(files)):
+    slices = slice_midi(f,ticks_per_clip)
+    for s in slices:
+        transposed = transpose_midi(s,-6,6)
+        for m in transposed:
+            gmidi.to(m,'{}/{}.mid'.format(path_new,m.name))
+            data += [multitrack_to_bool_tensor(m)]
+    n_files+=1
+    
+data = np.array(data)
 
 
 # ___________________
