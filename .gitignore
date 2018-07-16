@@ -5,3 +5,4 @@ __*
 *.mid*
 .*
 !.gitignore
+!__init__.py
