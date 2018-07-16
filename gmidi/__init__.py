@@ -1,1 +1,1 @@
-import gmidi
+from .gmidi import *
