@@ -185,7 +185,7 @@ class MidiArray:
             self.dims = {'timesteps': self.array.shape[0],
                        'pitches': self.array.shape[1],
                         'tracks': self.array.shape[2]}
-        elif array.shape == 3:
+        elif len(array.shape) == 3:
             self.array = array
             self.tracks_map = tracks_map
             self.dims = {'timesteps': self.array.shape[0],
@@ -226,8 +226,13 @@ class MidiArray:
         src = np.swapaxes(src,1,2) #(timesteps,pitch,tracks)
         src = np.swapaxes(src,0,1) #(timesteps,tracks,pitch)
         mul = mullib.Multitrack()
-        
-        for i in range(len(self.tracks_map)):
+       
+        if len(self.tracks_map) < len(self.array):
+            l = len(self.tracks_map)
+        else:
+            l = len(self.array)
+ 
+        for i in range(l):
             program = self.tracks_map[i]["program"]
             is_drum = self.tracks_map[i]["is_drum"]
             pianoroll = src[i]
@@ -340,13 +345,14 @@ class Gmidi(object):
     def truncate(self,begin, end):
         '''Clip a midifile from a 'begin' tick to the 'end' tick.'''
         self.to(mullib.Multitrack)
-        if begin>len(self._state.downbeat) or end < 0 or end <= begin:
+        if begin>len(self._state.tempo) or end < 0 or end <= begin:
             raise TypeError("Empty Slice: midi cannot be empty")
             
         for i in self._state.tracks:
             i.pianoroll = i.pianoroll[begin:end]
         self._state.tempo = self._state.tempo[begin:end]
-        self._state.downbeat = np.zeros(self._state.tempo.shape, dtype=bool)
+        #self._state.downbeat = np.zeros(self._state.tempo.shape, dtype=bool)
+        self._state.downbeat = self._state.downbeat[begin:end]
         self._state.downbeat[0]=True
 
         s1=self.dims["timesteps"]
@@ -370,14 +376,16 @@ class Gmidi(object):
         return self._state
                 
     
-    def orchestrate(self,i_to_t,t_to_i):
+    def orchestrate(self,i_to_t={(0,False):0},t_to_i=[{'program':1,"is_drum":False}]):
         """Reorchestrate using a mapping from a tuple i1=(program,is_drum) to a track t1 (i_to_t[i1]=t1) and
         associating a tuple i2=(program,is_drum) to each one of the final tracks t2 (t_to_i[t2]=i2). 
         Not mapped combinations will not be included in the final result."""
+        self.dims        
         mul = self.to(mullib.Multitrack)
         new_mul = mullib.copy(mul)
         
         new_mul.tracks=[]
+        new_mul.tracks += [mullib.Track(pianoroll=np.ones(mul.tracks[0].pianoroll.shape))]
         #print([i.name for i in new_mul.tracks])
         for t in range(len(t_to_i)):
             program = t_to_i[t]["program"]
@@ -392,16 +400,17 @@ class Gmidi(object):
                                             is_drum=is_drum,
                                             name=name)]
             for i in mul.tracks:
-                if i_to_t.get((i.program,i.is_drum),None) == t:
+                if i_to_t.get((i.program,i.is_drum),i_to_t.get((128,i.is_drum),None)) == t:
                     new_mul.tracks += [i]
-            new_mul.merge_tracks(list(range(t,len(new_mul.tracks))),
+            new_mul.merge_tracks(list(range(t+1,len(new_mul.tracks))),
                                  program=program,
                                  is_drum=is_drum,
                                  name=name,
-                                 remove_merged=True) 
+                                 remove_merged=True)
         
-        
+        new_mul.tracks=new_mul.tracks[1:]
         self._state = new_mul
+
         return self._state
     
     def chop(self,ticks_per_clip, mode="chuncking", next_function=None):
