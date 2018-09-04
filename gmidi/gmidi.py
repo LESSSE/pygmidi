@@ -11,6 +11,7 @@ import pretty_midi as prelib
 import pypianoroll as mullib
 import numpy as np
 import matplotlib as mpl
+import plot
 from matplotlib import pyplot as plt
 
 
@@ -63,7 +64,8 @@ def pattern_load(path,res):
     used = False
     program = 0
     is_drum = 0
-    
+    name = None    
+
     track = midi_data[0]
     pos = 0
     
@@ -105,14 +107,16 @@ def get_instruments(path):
         pattern = pattern_load(src,480)
 
     posns = [0 for track in pattern] #position in the list of events of each track
-    instruments = [{"used":False,"program":0,"is_drum":False} for track in pattern]
+    instruments = [{"used":False,"program":0,"is_drum":False,"name":None} for track in pattern]
 
     for i in range(len(pattern)): #For each track
         track = pattern[i]
         pos = posns[i]
         evt = track[pos]
         while not instruments[i]["used"]:
-            if isinstance(evt, patlib.NoteOnEvent) and evt.data[1]!=0:
+            if isinstance(evt, patlib.TrackNameEvent):
+                instruments[i]["name"]=evt.name
+            elif isinstance(evt, patlib.NoteOnEvent) and evt.data[1]!=0:
                 instruments[i]["used"]=True
             elif isinstance(evt, patlib.ProgramChangeEvent):
                 instruments[i]["program"]=evt.data[0]
@@ -147,9 +151,12 @@ def multitrack_load(path,res):
     for i in ins:
         program = i["program"]
         is_drum = i["is_drum"]
-        name = prelib.program_to_instrument_name(program)
-        if is_drum:
-            name = "Drums"
+        name = i.get("name")
+        if name is None:
+            if is_drum:
+               name = "Drums"
+            else:
+               name = prelib.program_to_instrument_name(program)
         if i["used"] == 0:
             t = mullib.Track(np.zeros(mul.tracks[0].pianoroll.shape,np.int8), program,is_drum,name)
             tracks += [t]
@@ -236,7 +243,9 @@ class MidiArray:
             program = self.tracks_map[i]["program"]
             is_drum = self.tracks_map[i]["is_drum"]
             pianoroll = src[i]
-            name = prelib.program_to_instrument_name(program)
+            name = self.tracks_map[i].get("name")
+            if name is None:
+               name = prelib.program_to_instrument_name(program)
             
             t = mullib.Track(pianoroll, program,is_drum,name)
             mul.tracks += [t]
@@ -368,14 +377,22 @@ class Gmidi(object):
         
         return self._state
     
+    def to_gif(self,path):
+        self.to(mullib.Multitrack)
+        p = self._state.get_merged_pianoroll("max")
+        plot.save_animation(path,p,1152,fps=2,hop=24) 
+
+    def to_jpg(self,path):
+        self.to(mullib.Multitrack)
+        plot.plot_multitrack(self._state,path)  
+
     def transpose(self, semitones):
         self.to(mullib.Multitrack)
         for i in self._state.tracks:
             if not i.is_drum:
                 i.transpose(semitones)
-        return self._state
-                
-    
+        return self._state   
+ 
     def orchestrate(self,i_to_t={(0,False):0},t_to_i=[{'program':1,"is_drum":False}]):
         """Reorchestrate using a mapping from a tuple i1=(program,is_drum) to a track t1 (i_to_t[i1]=t1) and
         associating a tuple i2=(program,is_drum) to each one of the final tracks t2 (t_to_i[t2]=i2). 
