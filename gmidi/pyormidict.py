@@ -40,7 +40,7 @@ organology_dict['timpani'] = [47]
 organology_dict['all'] = list(range(0,128))
 organology_dict['default'] = [128]
 
-pyormidict = organology_dict
+organology_dict
 
 def translate(dic):
     d = {}

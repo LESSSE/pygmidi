@@ -11,7 +11,8 @@ import pretty_midi as prelib
 import pypianoroll as mullib
 import numpy as np
 import matplotlib as mpl
-import plot
+import gmidi.plot as plot
+import gmidi.pyormidict
 from matplotlib import pyplot as plt
 
 
@@ -273,9 +274,15 @@ def midiarray_load(path,res):
 midiarray_repr = {"load": midiarray_load, "save": midiarray_save, "instance": MidiArray()}
 
 
+def vmax(a,v):
+        v = v-1
+        n = (v*(a>v) - a)
+        return a + n*(a>v)
+
+def vmin(a,v):
+     return a*(a>v)
+
 # In[6]:
-
-
 class Gmidi(object):
     """Facade for different classes of midi representations
     _repr is a dict which keys are midi representation classes and values are dict with 
@@ -293,7 +300,7 @@ class Gmidi(object):
 
     def _str_load(path,res):
         return path
-    
+ 
     #_______________________________________________________________________
     def __init__(self,src,res=24,reprs={mullib.Multitrack : multitrack_repr,
                                        patlib.Pattern : pattern_repr,
@@ -375,8 +382,40 @@ class Gmidi(object):
         else:
             pass
         
-        return self._state
-    
+        return self._state 
+
+    def process(path,
+                  i_to_t={('all',False): 0, ('default',False): 0},
+                  t_to_i=[{'name':"tutti",'program':0,'is_drum':False}],
+                  ticks=4*24*4,
+                  min_pitch=0,
+                  max_pitch=128,
+                  min_vel=0,
+                  max_vel=128,
+                  transpose=(-6,6)):
+       """
+       Given a path it returns a np.array(12,-1,ticks,pitch,len(t_to_i)) with pre-processed and augmented data
+       - unifies orchestration
+       - choped in blocks
+       - augmented by transposing from transpose[0] semitones to transpose[1] semitones (default from one dim fifth bellow to one perfect fourth above
+       - slicing the wanted pitches
+       - normalizing the velocities between 0 and 1
+       """
+       data = []
+       for i in range(*transpose):
+          data.append(Gmidi(path))
+          data[-1].orchestrate(gmidi.pyormidict.translate(i_to_t),t_to_i)
+          data[-1].transpose(i)
+          tracks_map = data[-1].tracks_map
+          data[-1]=data[i+6].chop(ticks)
+          for i in range(len(data[-1])):
+            data[-1][i]=data[-1][i].array
+       array = np.array(data)
+       array = vmax(vmin(array,min_vel),max_vel) #ignore all notes with vel under vel_min and ensure the max_vel is the highest value
+       array = array[:,:,:,min_pitch:max_pitch] #clip the pitches we don't want
+       array = (array)/float(max_vel)
+       return array
+ 
     def to_gif(self,path):
         self.to(mullib.Multitrack)
         p = self._state.get_merged_pianoroll("max")
