@@ -460,17 +460,31 @@ def plot_multitrack(multitrack, filepath=None, mode='stacked',
             if not track.is_drum:
                 is_all_drum = False
 
+        balpha=False
+
         fig, ax = plt.subplots()
         stacked = multitrack.get_stacked_pianorolls()
-
+        indices = tuple(np.reshape(np.concatenate([np.indices(stacked.shape[:-1]),[np.argmax(stacked,-1)]],0),(3,-1,)))
+        unique_playin = np.zeros(stacked.shape)
+        unique_playin[indices] = 1
+        unique_playin = unique_playin*(stacked>0) 
+        stacked = unique_playin 
+        unique_volume = unique_playin*stacked
+        alpha = np.reshape(np.max(unique_volume,-1),(-1,1))
         colormap = matplotlib.cm.get_cmap(cmaps[0])
         cmatrix = colormap(np.arange(0, 1, 1 / num_track))[:, :3]
         recolored = np.matmul(stacked.reshape(-1, num_track), cmatrix)
-        background = np.tile(background,(recolored.shape[0],1))
-        mask = np.reshape(np.repeat((np.sum(recolored,1)==0),(3)),(-1,3))
+        if balpha:
+           recolored = np.concatenate([recolored,alpha],-1)
+           background = np.tile(np.concatenate([background,[1]],-1),(recolored.shape[0],1))
+           n = 4
+        else:
+           background = np.tile(background,(recolored.shape[0],1))
+           n = 3
+        mask = np.reshape(np.repeat((np.sum(recolored,1)==0),(n)),(-1,n))
         recolored = np.where(mask,background,recolored)
             
-        stacked = recolored.reshape(stacked.shape[:2] + (3, ))
+        stacked = recolored.reshape(stacked.shape[:2] + (n, ))
 
         plot_pianoroll(ax, stacked, is_all_drum, multitrack.beat_resolution,
                        downbeats, preset=preset, xtick=xtick, ytick=ytick,
@@ -480,13 +494,21 @@ def plot_multitrack(multitrack, filepath=None, mode='stacked',
                        grid_linewidth=grid_linewidth)
 
         if track_label != 'none':
-            patches = [Patch(color=1-cmatrix[idx],
+            patches = [Patch(color=cmatrix[idx],
                              label=get_track_label(track_label, track))
                        for idx, track in enumerate(multitrack.tracks)]
-            plt.legend(handles=patches)
+            if len(patches) > 3:
+                ncol = 2
+                anchor = (0.5,1.1)
+            else:
+                ncol = 1
+                anchor = (0.5,1.05)
 
-        if filepath is not None:
-            plt.savefig(filepath)
+            plt.legend(handles=patches, fancybox=True,loc='upper center',ncol=ncol, bbox_to_anchor=anchor, framealpha=1)
+
+        if filepath is not None: 
+            fig.set_size_inches(10, 6)
+            plt.savefig(filepath,dpi=400)
 
         return (fig, [ax])
 

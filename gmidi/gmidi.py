@@ -116,7 +116,7 @@ def get_instruments(path):
         evt = track[pos]
         while not instruments[i]["used"]:
             if isinstance(evt, patlib.TrackNameEvent):
-                instruments[i]["name"]=evt.name
+                instruments[i]["name"]=evt.text
             elif isinstance(evt, patlib.NoteOnEvent) and evt.data[1]!=0:
                 instruments[i]["used"]=True
             elif isinstance(evt, patlib.ProgramChangeEvent):
@@ -152,7 +152,7 @@ def multitrack_load(path,res):
     for i in ins:
         program = i["program"]
         is_drum = i["is_drum"]
-        name = i.get("name")
+        name = i["name"]
         if name is None:
             if is_drum:
                name = "Drums"
@@ -171,7 +171,6 @@ def multitrack_load(path,res):
     return mul
 
 multitrack_repr = {"load": multitrack_load, "save": multitrack_save, "instance": mullib.Multitrack()}
-
 
 # In[5]:
 
@@ -246,11 +245,13 @@ class MidiArray:
             pianoroll = src[i]
             name = self.tracks_map[i].get("name")
             if name is None:
-               name = prelib.program_to_instrument_name(program)
+              if is_drum:
+                name = "Drums"
+              else:
+                name = prelib.program_to_instrument_name(program)
             
             t = mullib.Track(pianoroll, program,is_drum,name)
             mul.tracks += [t]
-        
         mul.write(path) #adds one track 
     
     def __setattr__(self, name, value):
