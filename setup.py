@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='gmidi',
-      version='0.3',
+      version='1.0',
       description='Genereal midi representation for data analysis',
       long_description=open('README.md').read(),
       classifiers=[
@@ -29,6 +29,7 @@ setup(name='gmidi',
           'numpy',
           'pypianoroll',
           'midi',
+          'pandas',
           'moviepy'
       ],
       include_package_data=True,
