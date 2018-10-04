@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import os
+import pandas as pd
 import gmidi.evaltools as evaltool
 from itertools import product
 

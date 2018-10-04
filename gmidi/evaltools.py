@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import os
 import random
 import matplotlib.pyplot as plt
 import collections
@@ -47,7 +48,7 @@ class evaltool:
     def add(self,pianoroll,table=False):
         s = len(self.v)
         if not isinstance(pianoroll,list):
-            pianoroll = [pianoroll]
+            pianoroll = list(pianoroll)
         for p in pianoroll:
             r = self.eval(p)
             self.v += r
@@ -79,6 +80,7 @@ class evaltool:
         cax = divider.append_axes("right", size="5%", pad=0.3)
         fig.colorbar(im,cax=cax, ticks=[-1,-.75,-.5,-.25,0,.25,.5,.75,1])
         fig.savefig(path,dpi=400,bbox_inches='tight')
+
 
 class characterizors(evaltool):
     
@@ -186,21 +188,35 @@ class characterizors(evaltool):
     def present(self,path=None):
         if path is None:
             path = self.name.lower().replace(" ","_")+".jpg"
-        fig,ax = plt.subplots( nrows=1, ncols=1 )
+        fig,ax = plt.subplots()
+        plt.title(self.name)
+        grid = plt.GridSpec(4, 10, wspace=0.7, hspace=0.4)
+        
+        df = self.table()
+        for i,x in enumerate(df):
+            ax = plt.subplot(grid[(i)//10,(i)%10])
+            v = df[x].values
+            v = np.array(list(filter(lambda x: np.logical_not(np.sum(np.isnan(x),0)),v)))
+            ax.hist(v)
+            ax.set_title(x)
+        
+        ax = plt.subplot(grid[2:,0:])
         ax.axis('off')
-        ax.axis('tight')
+        #ax.axis('tight')
         ax.xaxis.set_visible(False)  # hide the x axis
         ax.yaxis.set_visible(False)  # hide the y axis
-        tb = self.table().describe()
+        tb = pd.concat([self.describe(),self.normality(True),self.relevance(True)],0)
+
         t = ax.table(cellText=self.table().describe().values,
                     rowLabels=self.table().describe().index,
                     colLabels=self.table().describe().columns,
                     loc='center')
-        #t = table(ax, tb)  # where df is your data frame
-        t.scale(1.5,1.5)
-        plt.title(self.name)
+        t.scale(1.5,1)
+        fig.set_figheight(8)
         fig.set_figwidth(40)
+        fig.suptitle(self.name, fontsize=16)
         fig.savefig(path,dpi=400,bbox_inches='tight')
+
 
 class regression(evaltool):
     def __init__(self,fun,name="regression",degree=4):
