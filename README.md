@@ -17,11 +17,11 @@ General Midi or gmidi is a facade for the most used representations of midiin py
 ## Instalation
 ____________________________________________________________
 
-'''python
+```python
 $ git clone https://github.com/LESSSE/gmidi
 $ cd gmidi
 $ pip install . --user
-'''
+```
 
 ## Starting
 ____________________________________________________________
