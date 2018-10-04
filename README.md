@@ -6,7 +6,7 @@ General Midi or gmidi is a facade for the most used representations of midiin py
 * [PrettyMidi](https://github.com/craffel/pretty-midi)
 * [pianoroll Multitrack](https://salu133445.github.io/pypianoroll/)
 * MidiArray 
-* **To Come** [MIDIFile](https://github.com/MarkCWirt/MIDIUtil)
+* ~~[MIDIFile](https://github.com/MarkCWirt/MIDIUtil)~~ (Coming)
  
 **New Features:**
 * MidiArray is a new representation that uses an array and a list of instruments, allowing to easily have a tensor representation of a midi file
