@@ -408,7 +408,7 @@ class Gmidi(object):
           data[-1].orchestrate(gmidi.pyormidict.translate(i_to_t),t_to_i)
           data[-1].transpose(i)
           tracks_map = data[-1].tracks_map
-          data[-1]=data[i+6].chop(ticks)
+          data[-1]=data[i-transpose[0]].chop(ticks)
           for i in range(len(data[-1])):
             data[-1][i]=data[-1][i].array
        array = np.array(data)

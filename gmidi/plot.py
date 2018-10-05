@@ -504,7 +504,11 @@ def plot_multitrack(multitrack, filepath=None, mode='stacked',
                 ncol = 1
                 anchor = (0.5,1.05)
 
-            plt.legend(handles=patches, fancybox=True,loc='upper center',ncol=ncol, bbox_to_anchor=anchor, framealpha=1)
+            if len(patches) < 9:
+                plt.legend(handles=patches, fancybox=True,loc='upper center',ncol=ncol, bbox_to_anchor=anchor, framealpha=1)
+            else:
+                plt.legend(handles=patches, fancybox=True,loc='left center',ncol=ncol, bbox_to_anchor=(1.05,.5), framealpha=1)
+
 
         if filepath is not None: 
             fig.set_size_inches(10, 6)

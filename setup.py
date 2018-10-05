@@ -30,7 +30,8 @@ setup(name='gmidi',
           'pypianoroll',
           'midi',
           'pandas',
-          'moviepy'
+          'moviepy',
+          'pyfluidsynth'
       ],
       include_package_data=True,
       zip_safe=False)
