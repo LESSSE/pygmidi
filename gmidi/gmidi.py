@@ -1,289 +1,33 @@
+##LESSSE
+##10 November 2018
+##gmidi
+##____________
+##Main class 
+##____________
 
-# coding: utf-8
-
-# In[13]:
 
 import sys
 import shutil
 import os.path
-import midi as patlib
-import pretty_midi as prelib
-import pypianoroll as mullib
 import numpy as np
 import matplotlib as mpl
-import gmidi.plot as plot
-import gmidi.pyormidict
+from . import pretty_midi as prelib
+from . import pypianoroll as mullib
+from .utils import plot
+from .utils import pyormidict
 from matplotlib import pyplot as plt
-
-
-# In[2]:
-
-
-#_____Pretty______
-def pretty_save(src,path):
-    src.write(path)
-    return path
-
-def pretty_load(path,res):
-    midi_data = prelib.PrettyMIDI(path,resolution=res)
-    return midi_data
-
-pretty_repr = {"load": pretty_load, "save": pretty_save, "instance": prelib.PrettyMIDI()}
-
-
-# In[3]:
-
-
-#_____Pattern______
-
-def change_res(pattern,n_res):
-        o_res = pattern.resolution
-        
-        if o_res == n_res:
-            return pattern
-        
-        frac = n_res/o_res
-        for t in pattern:
-            for e in t:
-                e.tick = int(round(frac*e.tick))
-        pattern.resolution = n_res
-
-        return pattern
-
-def pattern_save(src,path):
-    patlib.write_midifile(path, src)
-    return path
-
-def pattern_load(path,res):
-    midi_data = patlib.read_midifile(path)
-    pretty = pretty_load(path,480)
-    if len(midi_data) < len(pretty.instruments):
-        pretty_save(pretty,path)
-    midi_data = patlib.read_midifile(path)
-    change_res(midi_data,res)
-    
-    used = False
-    program = 0
-    is_drum = 0
-    name = None    
-
-    track = midi_data[0]
-    pos = 0
-    
-    while (not used and not program and not is_drum):
-        evt = track[pos]
-        
-        if isinstance(evt, patlib.NoteOnEvent) and evt.data[1]!=0:
-            used=True
-        elif isinstance(evt, patlib.ProgramChangeEvent):
-            program=evt.data[0]
-            if evt.channel == 9:
-                is_drum=True
-        try:
-            pos += 1 
-            evt = track[pos]
-        except IndexError:
-            midi_data = midi_data[1:]
-            track = midi_data[0]
-            pos = 0
-    
-    return midi_data
-
-pattern_repr = {"load": pattern_load, "save": pattern_save, "instance": patlib.Pattern()}
-
-
-# In[4]:
-
-
-#_____Multitrack________
-def get_instruments(path):
-    '''Returns an array that represents track information of one .mid file'''
-    src=path
-    pattern = pattern_load(src,480)
-    pretty = pretty_load(src,480)
-
-    if len(pattern) < len(pretty.instruments):
-        #utils.eprint("Diff:",len(pattern),len(pretty.instruments))
-        pretty_save(pretty,path)
-        pattern = pattern_load(src,480)
-
-    posns = [0 for track in pattern] #position in the list of events of each track
-    instruments = [{"used":False,"program":0,"is_drum":False,"name":None} for track in pattern]
-
-    for i in range(len(pattern)): #For each track
-        track = pattern[i]
-        pos = posns[i]
-        evt = track[pos]
-        while not instruments[i]["used"]:
-            if isinstance(evt, patlib.TrackNameEvent):
-                instruments[i]["name"]=evt.text
-            elif isinstance(evt, patlib.NoteOnEvent) and evt.data[1]!=0:
-                instruments[i]["used"]=True
-            elif isinstance(evt, patlib.ProgramChangeEvent):
-                instruments[i]["program"]=evt.data[0]
-                if evt.channel == 9:
-                    instruments[i]["is_drum"]=True
-            try:
-                posns[i] += 1 
-                pos = posns[i]
-                evt = track[pos]
-            except IndexError:
-                break
-
-    while not instruments[0]["used"] and not instruments[0]["program"] and not instruments[0]["is_drum"]:
-        instruments = instruments[1:]
-    #print(instruments)
-    return instruments
-
-def multitrack_save(src,path):
-    src.write(path)
-    return path
-
-def multitrack_load(path,res):
-    mul = mullib.Multitrack(beat_resolution=res,name=os.path.basename(path))
-    ins = get_instruments(path)
-    pretty = pretty_load(path,res)
-    mul.parse_pretty_midi(pretty,skip_empty_tracks=False)       
-    if len(mul.tracks)!=len(pretty.instruments):
-        raise MidiError
-
-    j=0
-    tracks = []
-    for i in ins:
-        program = i["program"]
-        is_drum = i["is_drum"]
-        name = i["name"]
-        if name is None:
-            if is_drum:
-               name = "Drums"
-            else:
-               name = prelib.program_to_instrument_name(program)
-        if i["used"] == 0:
-            t = mullib.Track(np.zeros(mul.tracks[0].pianoroll.shape,np.int8), program,is_drum,name)
-            tracks += [t]
-        else:
-            mul.tracks[j].name=name
-            tracks += [mul.tracks[j]]
-            j+=1
-            
-    mul = mullib.Multitrack(tracks=tracks,tempo=mul.tempo, downbeat=mul.downbeat, beat_resolution=mul.beat_resolution, name=mul.name)
-
-    return mul
-
-multitrack_repr = {"load": multitrack_load, "save": multitrack_save, "instance": mullib.Multitrack()}
-
-# In[5]:
-
-
-#____MidiArray_________
-class MidiArray:
-    
-    def __init__(self,mt=None,res=24,array=np.zeros((1,128,1)),tracks_map=[{"program":0,"is_drum":False}]):
-        """Loads a midi file to an array shaped (timesteps,pitch,tracks))"""
-        if mt is not None:
-            tensor = []
-            for t in mt.tracks:
-                tensor += [t.pianoroll]
-            t = np.array(tensor) #(tracks,timesteps,pitch)
-            t = np.swapaxes(t,0,1) #(timesteps,tracks,pitch)
-            t = np.swapaxes(t,1,2) #(timesteps,pitch,tracks)
-            self.array = t
-            self.tracks_map = get_instruments(mt)
-            self.dims = {'timesteps': self.array.shape[0],
-                       'pitches': self.array.shape[1],
-                        'tracks': self.array.shape[2]}
-        elif len(array.shape) == 3:
-            self.array = array
-            self.tracks_map = tracks_map
-            self.dims = {'timesteps': self.array.shape[0],
-                       'pitches': self.array.shape[1],
-                        'tracks': self.array.shape[2]}
-        else:
-            self.array = None
-            self.tracks_map = None
-            self.dims = {'timesteps': 0,
-                       'pitches': 0,
-                        'tracks': 0}
-   
-    def __getitem__(self, item):
-        return self.array[item]
-
-    def __getslice__(self, i, j):
-        # The deprecated __getslice__ is still called when subclassing built-in types
-        # for calls of the form List[i:j]
-        return self.array[slice(i,j)]
-            
-    def load(self,path,res=24):
-        mt = multitrack_load(path,res)
-        tensor = []
-        for t in mt.tracks:
-            tensor += [t.pianoroll]
-        t = np.array(tensor) #(tracks,timesteps,pitch)
-        t = np.swapaxes(t,0,1) #(timesteps,tracks,pitch)
-        t = np.swapaxes(t,1,2) #(timesteps,pitch,tracks)
-        self.array = t
-        self.tracks_map = get_instruments(path)
-        self.dims = {'timesteps': self.array.shape[0],
-                       'pitches': self.array.shape[1],
-                        'tracks': self.array.shape[2]}
-    
-    def save(self,path):
-        """Saves mididata in an array shaped (timesteps,pitch,tracks)) into a .mid file"""
-        src = self.array
-        src = np.swapaxes(src,1,2) #(timesteps,pitch,tracks)
-        src = np.swapaxes(src,0,1) #(timesteps,tracks,pitch)
-        mul = mullib.Multitrack()
-       
-        if len(self.tracks_map) < len(self.array):
-            l = len(self.tracks_map)
-        else:
-            l = len(self.array)
- 
-        for i in range(l):
-            program = self.tracks_map[i]["program"]
-            is_drum = self.tracks_map[i]["is_drum"]
-            pianoroll = src[i]
-            name = self.tracks_map[i].get("name")
-            if name is None:
-              if is_drum:
-                name = "Drums"
-              else:
-                name = prelib.program_to_instrument_name(program)
-            
-            t = mullib.Track(pianoroll, program,is_drum,name)
-            mul.tracks += [t]
-        mul.write(path) #adds one track 
-    
-    def __setattr__(self, name, value):
-        object.__setattr__(self,name, value)
-        if name == "array" and value is not None:
-            self.dims = {'timesteps': self.array.shape[0],
-                       'pitches': self.array.shape[1],
-                        'tracks': self.array.shape[2]}
-        
-    
-    
-def midiarray_save(src,path):
-    src.save(path)
-    return path
-
-def midiarray_load(path,res):
-    midi_data = MidiArray()
-    midi_data.load(path,res)
-    return midi_data
-
-midiarray_repr = {"load": midiarray_load, "save": midiarray_save, "instance": MidiArray()}
-
+from .repr import reprs
 
 def vmax(a,v):
         v = v-1
+        v = v/float(128)
         n = (v*(a>v) - a)
         return a + n*(a>v)
 
 def vmin(a,v):
-     return a*(a>v)
+    v = v/float(128)
+    return a*(a>v)
 
-# In[6]:
 class Gmidi(object):
     """Facade for different classes of midi representations
     _repr is a dict which keys are midi representation classes and values are dict with 
@@ -303,17 +47,16 @@ class Gmidi(object):
         return path
  
     #_______________________________________________________________________
-    def __init__(self,src,res=24,reprs={mullib.Multitrack : multitrack_repr,
-                                       patlib.Pattern : pattern_repr,
-                                       prelib.PrettyMIDI: pretty_repr,
-                                       MidiArray: midiarray_repr}):
+    def __init__(self,src,res=24,reprs = reprs):
         _str_repr = {"load": Gmidi._str_load, "save": Gmidi._str_save}
         self._log=False
         self._reprs=reprs
         self._sreprs={}
         self._sreprs.update(self._reprs)
         self._sreprs.update({str : _str_repr})
-        if self.in_sreprs(src): 
+        if self.in_sreprs(src):
+            if isinstance(src,str) and not os.path.isfile(src):
+                raise ValueError("If src is a path it should point to a file")
             self._state=src
         else:
             typeError(type(src))
@@ -332,7 +75,7 @@ class Gmidi(object):
         for i in self._reprs:
             if isinstance(self._state,i):
                 self._state=self._reprs[i]["save"](self._state,path)
-    
+
     def to(self,out,clean=True):
         if isinstance(out,str):
             temp_file = out
@@ -359,6 +102,10 @@ class Gmidi(object):
         
         return self._state
     
+    def vel_limit(self,v_min=0,v_max=128):
+        self.to(arrlib.MidiArray)
+        self.array = vmax(vmin(self.array,min_vel),max_vel)
+
     def truncate(self,begin, end):
         '''Clip a midifile from a 'begin' tick to the 'end' tick.'''
         self.to(mullib.Multitrack)
@@ -404,17 +151,16 @@ class Gmidi(object):
        """
        data = []
        for i in range(*transpose):
-          data.append(Gmidi(path))
-          data[-1].orchestrate(gmidi.pyormidict.translate(i_to_t),t_to_i)
+          data.append(Gmidi(path,))
+          data[-1].orchestrate(pyormidict.translate(i_to_t),t_to_i)
           data[-1].transpose(i)
           tracks_map = data[-1].tracks_map
           data[-1]=data[i-transpose[0]].chop(ticks)
           for i in range(len(data[-1])):
             data[-1][i]=data[-1][i].array
        array = np.array(data)
-       array = vmax(vmin(array,min_vel),max_vel) #ignore all notes with vel under vel_min and ensure the max_vel is the highest value
+       array = vmax(vmin(array,min_vel),max_vel)
        array = array[:,:,:,min_pitch:max_pitch] #clip the pitches we don't want
-       array = (array)/float(max_vel)
        return array
  
     def to_gif(self,path):
