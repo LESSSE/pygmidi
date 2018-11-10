@@ -17,6 +17,7 @@ from .utils import plot
 from .utils import pyormidict
 from matplotlib import pyplot as plt
 from .repr import reprs
+from scipy.io import wavfile
 
 def vmax(a,v):
         v = v-1
@@ -171,6 +172,14 @@ class Gmidi(object):
     def to_jpg(self,path):
         self.to(mullib.Multitrack)
         plot.plot_multitrack(self._state,path)  
+
+    def to_wav(self,path,fs=16000):
+        #exporting to wav
+        try:
+            a = self.fluidsynth(fs=fs)
+        except:
+            a = self.synthesize(fs=fs)
+        wavfile.write(path, fs, a)
 
     def transpose(self, semitones):
         self.to(mullib.Multitrack)
