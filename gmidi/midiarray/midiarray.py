@@ -35,7 +35,9 @@ class MidiArray:
             self.dims = {'timesteps': self.array.shape[0],
                        'pitches': self.array.shape[1],
                         'tracks': self.array.shape[2]}
-        elif len(array.shape) == 3:
+        else:
+            if len(array.shape) != 3:
+                raise ValueError("array must be of dimension 3 and not "+str(len(array.shape)))
             if len(tracks_map) != array.shape[-1]:
                 raise ValueError("track_map do not have the same number of tracks of the array")
             self.array = vmax(vmin(array,0),1)
@@ -44,13 +46,6 @@ class MidiArray:
             self.dims = {'timesteps': self.array.shape[0],
                        'pitches': self.array.shape[1],
                         'tracks': self.array.shape[2]}
-        else:
-            self.array = None
-            self.res = res
-            self.tracks_map = None
-            self.dims = {'timesteps': 0,
-                       'pitches': 0,
-                        'tracks': 0}
    
     def __getitem__(self, item):
         return self.array[item]
