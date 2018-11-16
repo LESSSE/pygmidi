@@ -10,7 +10,7 @@ import numpy as np
 import math
 import os
 import pandas as pd
-from .. import utils as evaltool
+from . import evaltools as evaltool
 from itertools import product
 
 ##_____AUX_______
