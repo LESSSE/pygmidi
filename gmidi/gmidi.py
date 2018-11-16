@@ -94,8 +94,6 @@ class Gmidi(object):
         
         for i in self._sreprs:
             if isinstance(self._state,i):
-                while os.path.exists(temp_file+".mid"):
-                    temp_file = ''.join(random.sample(s,len(s)))
                 self._state=self._sreprs[i]["save"](self._state,temp_file+".mid")
                 break
         if isinstance(out,str):
