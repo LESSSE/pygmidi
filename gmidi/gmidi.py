@@ -18,6 +18,7 @@ from .utils import pyormidict
 from matplotlib import pyplot as plt
 from .repr import reprs
 from scipy.io import wavfile
+import random
 
 def vmax(a,v):
         v = v-1
@@ -82,7 +83,8 @@ class Gmidi(object):
             temp_file = out
             clean = False
         else:
-            temp_file = "gmidi_tmp.mid"
+            s = "gmidi_tmp_lessseesssel_pmt_idimg"
+            temp_file = ''.join(random.sample(s,len(s)))
                             
         if type(out) is type and isinstance(self._state,out):
             return self._state
@@ -92,14 +94,16 @@ class Gmidi(object):
         
         for i in self._sreprs:
             if isinstance(self._state,i):
-                self._state=self._sreprs[i]["save"](self._state,temp_file)
+                while os.path.exists(temp_file+".mid"):
+                    temp_file = ''.join(random.sample(s,len(s)))
+                self._state=self._sreprs[i]["save"](self._state,temp_file+".mid")
                 break
         if isinstance(out,str):
             out = str
-        self._state=self._sreprs[out]["load"](temp_file,self._res)
+        self._state=self._sreprs[out]["load"](temp_file+".mid",self._res)
         
         if clean:
-            os.remove(temp_file)
+            os.remove(temp_file+".mid")
         
         return self._state
     
