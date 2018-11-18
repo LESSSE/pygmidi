@@ -708,110 +708,131 @@ class Multitrack(object):
 
         beat_times = pm.get_beats(first_beat_time)
         if not len(beat_times):
-            raise ValueError("Cannot get beat timings to quantize pianoroll.")
-        beat_times.sort()
+            #raise ValueError("Cannot get beat timings to quantize pianoroll.")
+            n_beats = 1
+            n_time_steps = self.beat_resolution * n_beats
+            self.tracks = []
 
-        n_beats = len(beat_times)
-        n_time_steps = self.beat_resolution * n_beats
-
-        # Parse downbeat array
-        if not pm.time_signature_changes:
-            self.downbeat = None
-        else:
-            self.downbeat = np.zeros((n_time_steps,), bool)
-            self.downbeat[0] = True
-            start = 0
-            end = start
-            for idx, tsc in enumerate(pm.time_signature_changes[:-1]):
-                end += np.searchsorted(beat_times[end:],
-                                       pm.time_signature_changes[idx+1].time)
-                start_idx = start * self.beat_resolution
-                end_idx = end * self.beat_resolution
-                stride = tsc.numerator * self.beat_resolution
-                self.downbeat[start_idx:end_idx:stride] = True
-                start = end
-
-        # Build tempo array
-        one_more_beat = 2 * beat_times[-1] - beat_times[-2]
-        beat_times_one_more = np.append(beat_times, one_more_beat)
-        bpm = 60. / np.diff(beat_times_one_more)
-        self.tempo = np.tile(bpm, (1, 24)).reshape(-1,)
-
-        # Parse pianoroll
-        self.tracks = []
-        for instrument in pm.instruments:
-            if binarized:
-                pianoroll = np.zeros((n_time_steps, 128), bool)
-            elif mode == 'max':
-                pianoroll = np.zeros((n_time_steps, 128), np.uint8)
-            else:
-                pianoroll = np.zeros((n_time_steps, 128), int)
-
-            pitches = np.array([note.pitch for note in instrument.notes
-                                if note.end > first_beat_time])
-            note_on_times = np.array([note.start for note in instrument.notes
-                                      if note.end > first_beat_time])
-            beat_indices = np.searchsorted(beat_times, note_on_times) - 1
-            remained = note_on_times - beat_times[beat_indices]
-            ratios = remained / (beat_times_one_more[beat_indices + 1]
-                                 - beat_times[beat_indices])
-            rounded = np.round((beat_indices + ratios) * self.beat_resolution)
-            note_ons = rounded.astype(int)
-            pitches = pitches.astype(int)
-
-            if collect_onsets_only:
-                pianoroll[note_ons, pitches] = True
-            elif instrument.is_drum:
+            for instrument in pm.instruments:
                 if binarized:
-                    pianoroll[note_ons, pitches] = True
+                    pianoroll = np.zeros((n_time_steps, 128), bool)
+                elif mode == 'max':
+                    pianoroll = np.zeros((n_time_steps, 128), np.uint8)
                 else:
-                    velocities = [note.velocity for note in instrument.notes
-                                  if note.end > first_beat_time]
-                    pianoroll[note_ons, pitches] = velocities
+                    pianoroll = np.zeros((n_time_steps, 128), int)
+
+                track = Track(pianoroll, int(instrument.program),
+                              instrument.is_drum, instrument.name)
+
+                if skip_empty_tracks and not np.any(pianoroll):
+                    continue
+
+                self.tracks.append(track)
+
+        else:    
+            beat_times.sort()
+
+            n_beats = len(beat_times)
+            n_time_steps = self.beat_resolution * n_beats
+
+            # Parse downbeat array
+            if not pm.time_signature_changes:
+                self.downbeat = None
             else:
-                note_off_times = np.array([note.end for note in instrument.notes
-                                           if note.end > first_beat_time])
-                beat_indices = np.searchsorted(beat_times, note_off_times) - 1
-                remained = note_off_times - beat_times[beat_indices]
+                self.downbeat = np.zeros((n_time_steps,), bool)
+                self.downbeat[0] = True
+                start = 0
+                end = start
+                for idx, tsc in enumerate(pm.time_signature_changes[:-1]):
+                    end += np.searchsorted(beat_times[end:],
+                                           pm.time_signature_changes[idx+1].time)
+                    start_idx = start * self.beat_resolution
+                    end_idx = end * self.beat_resolution
+                    stride = tsc.numerator * self.beat_resolution
+                    self.downbeat[start_idx:end_idx:stride] = True
+                    start = end
+
+            # Build tempo array
+            one_more_beat = 2 * beat_times[-1] - beat_times[-2]
+            beat_times_one_more = np.append(beat_times, one_more_beat)
+            bpm = 60. / np.diff(beat_times_one_more)
+            self.tempo = np.tile(bpm, (1, 24)).reshape(-1,)
+
+            # Parse pianoroll
+            self.tracks = []
+            for instrument in pm.instruments:
+                if binarized:
+                    pianoroll = np.zeros((n_time_steps, 128), bool)
+                elif mode == 'max':
+                    pianoroll = np.zeros((n_time_steps, 128), np.uint8)
+                else:
+                    pianoroll = np.zeros((n_time_steps, 128), int)
+
+                pitches = np.array([note.pitch for note in instrument.notes
+                                    if note.end > first_beat_time])
+                note_on_times = np.array([note.start for note in instrument.notes
+                                          if note.end > first_beat_time])
+                beat_indices = np.searchsorted(beat_times, note_on_times) - 1
+                remained = note_on_times - beat_times[beat_indices]
                 ratios = remained / (beat_times_one_more[beat_indices + 1]
                                      - beat_times[beat_indices])
-                note_offs = ((beat_indices + ratios)
-                             * self.beat_resolution).astype(int)
+                rounded = np.round((beat_indices + ratios) * self.beat_resolution)
+                note_ons = rounded.astype(int)
+                pitches = pitches.astype(int)
 
-                for idx, start in enumerate(note_ons):
-                    end = note_offs[idx]
-                    velocity = instrument.notes[idx].velocity
-
-                    if velocity < 1:
-                        continue
-                    if binarized and velocity <= threshold:
-                        continue
-
-                    if start > 0 and start < n_time_steps:
-                        if pianoroll[start - 1, pitches[idx]]:
-                            pianoroll[start - 1, pitches[idx]] = 0
-                    if end < n_time_steps - 1:
-                        if pianoroll[end, pitches[idx]]:
-                            end -= 1
-
+                if collect_onsets_only:
+                    pianoroll[note_ons, pitches] = True
+                elif instrument.is_drum:
                     if binarized:
-                        if mode == 'sum':
-                            pianoroll[start:end, pitches[idx]] += 1
+                        pianoroll[note_ons, pitches] = True
+                    else:
+                        velocities = [note.velocity for note in instrument.notes
+                                      if note.end > first_beat_time]
+                        pianoroll[note_ons, pitches] = velocities
+                else:
+                    note_off_times = np.array([note.end for note in instrument.notes
+                                               if note.end > first_beat_time])
+                    beat_indices = np.searchsorted(beat_times, note_off_times) - 1
+                    remained = note_off_times - beat_times[beat_indices]
+                    ratios = remained / (beat_times_one_more[beat_indices + 1]
+                                         - beat_times[beat_indices])
+                    note_offs = ((beat_indices + ratios)
+                                 * self.beat_resolution).astype(int)
+
+                    for idx, start in enumerate(note_ons):
+                        end = note_offs[idx]
+                        velocity = instrument.notes[idx].velocity
+
+                        if velocity < 1:
+                            continue
+                        if binarized and velocity <= threshold:
+                            continue
+
+                        if start > 0 and start < n_time_steps:
+                            if pianoroll[start - 1, pitches[idx]]:
+                                pianoroll[start - 1, pitches[idx]] = 0
+                        if end < n_time_steps - 1:
+                            if pianoroll[end, pitches[idx]]:
+                                end -= 1
+
+                        if binarized:
+                            if mode == 'sum':
+                                pianoroll[start:end, pitches[idx]] += 1
+                            elif mode == 'max':
+                                pianoroll[start:end, pitches[idx]] = True
+                        elif mode == 'sum':
+                            pianoroll[start:end, pitches[idx]] += velocity
                         elif mode == 'max':
-                            pianoroll[start:end, pitches[idx]] = True
-                    elif mode == 'sum':
-                        pianoroll[start:end, pitches[idx]] += velocity
-                    elif mode == 'max':
-                        maximum = np.maximum(
-                            pianoroll[start:end, pitches[idx]], velocity)
-                        pianoroll[start:end, pitches[idx]] = maximum
+                            maximum = np.maximum(
+                                pianoroll[start:end, pitches[idx]], velocity)
+                            pianoroll[start:end, pitches[idx]] = maximum
 
-            if skip_empty_tracks and not np.any(pianoroll):
-                continue
+                if skip_empty_tracks and not np.any(pianoroll):
+                    continue
 
-            track = Track(pianoroll, int(instrument.program),
-                          instrument.is_drum, instrument.name)
-            self.tracks.append(track)
+                track = Track(pianoroll, int(instrument.program),
+                              instrument.is_drum, instrument.name)
+                self.tracks.append(track)
 
         self.check_validity()
 
