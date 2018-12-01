@@ -7,3 +7,4 @@ __*
 !.gitignore
 !__init__.py
 *test.py
+!examples/*.ipynb
