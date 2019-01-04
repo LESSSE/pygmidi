@@ -1,5 +1,6 @@
 v0.1,    Aug-2018 -- Initial release
 v0.3, 05-Sep-2018 -- Added vizualization methods
-v1.00, 01-Oct-2018 -- Added metric and evaltools 
-v2.00, 10-Nov-2018 -- New structure, by adding altered copys of some of the libraries it is possible to simplify all the code for less bugs
-v2.10, 18-Nov-2018 -- Now it pianoroll is able to parse empty (without notes) pretty-midi instances
+v1.0.0, 01-Oct-2018 -- Added metric and evaltools 
+v2.0.0, 10-Nov-2018 -- New structure, by adding altered copys of some of the libraries it is possible to simplify all the code for less bugs
+v2.1.0, 18-Nov-2018 -- Now it pianoroll is able to parse empty (without notes) pretty-midi instances
+v2.1.1, 04-Jan-2018 -- Erases temporary file on exception

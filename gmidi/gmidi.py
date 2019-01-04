@@ -92,16 +92,17 @@ class Gmidi(object):
         if self._log:
             print("To",out,file=sys.stderr)
         
-        for i in self._sreprs:
-            if isinstance(self._state,i):
-                self._state=self._sreprs[i]["save"](self._state,temp_file+".mid")
-                break
-        if isinstance(out,str):
-            out = str
-        self._state=self._sreprs[out]["load"](temp_file+".mid",self._res)
-        
-        if clean:
-            os.remove(temp_file+".mid")
+        try:
+            for i in self._sreprs:
+                if isinstance(self._state,i):
+                    self._state=self._sreprs[i]["save"](self._state,temp_file+".mid")
+                    break
+            if isinstance(out,str):
+                out = str
+            self._state=self._sreprs[out]["load"](temp_file+".mid",self._res)
+        finally:
+            if clean:
+                os.remove(temp_file+".mid")
         
         return self._state
     
