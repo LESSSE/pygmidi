@@ -37,3 +37,46 @@ ____________________________________________________________
     g.to_npz("new_npz_path")
     g.to_gif("new_gif_path")
 ```
+
+
+## For processing midi files in a directory
+____________________________________________________________
+
+```
+    #!/usr/bin/env python
+
+    from gmidi import Gmidi,utils,midiarray
+    from glob import glob
+    from os import path
+    
+    programs_map = {('woods',False): 0,
+                ('brass',False): 1,
+                ('percussion',True): 2,
+                ('timpani',False): 3,
+                ('chromatic_percussion',False): 4,
+                ('voices', False): 5,
+                ('guitars',False): 6,
+                ('basses',False): 6,
+                ('strings',False): 6,
+                ('keyboards',False): 7}
+
+    #Tracks_map is the configuration for the new orchestrated tracks
+    tracks_map = [{'program':71,'is_drum':False,"name":"woods"}, #woods
+                {'program':60,'is_drum':False,"name":"brass"}, #brass
+                {'program':0,'is_drum':True,"name":"percussion"},  #percussion
+                {'program':47,'is_drum':False,"name":"timpani"}, #timpani
+                {'program':14,'is_drum':False,"name":"tubular bells"}, #tubular bells
+                {'program':52,'is_drum':False,"name":"voices"}, #voices
+                {'program':48,'is_drum':False,"name":"strings"}, #strings
+                {'program':1,'is_drum':False,"name":"piano"}] #piano
+    
+    for i in glob('{}/*.mid'.format("midi")):
+         a = Gmidi.process(songs[0],
+                  i_to_t=programs_map,
+                  t_to_i=tracks_map,
+                  ticks=4*24*4,
+                  transpose=(0,1))
+         utils.sparray.save("{}/{}.npz".format("npz",path.splitext(path.basename(i))[0]),a)
+```
+
+
