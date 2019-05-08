@@ -15,6 +15,7 @@ from . import pretty_midi as prelib
 from . import pypianoroll as mullib
 from .utils import plot
 from .utils import pyormidict
+from .utils import sparray
 from matplotlib import pyplot as plt
 from .repr import reprs
 from scipy.io import wavfile

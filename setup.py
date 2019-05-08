@@ -26,13 +26,20 @@ setup(name='gmidi',
       author='Luís Espírito Santo (LESSSE)',
       author_email='luis.a.santo@tecnico.ulisboa.pt',
       license='',
+      package_dir = {
+            'gmidi': 'gmidi',
+            'gmidi.midiarray': 'gmidi/midiarray',
+            'gmidi.pypianoroll': 'gmidi/pypianoroll',
+            'gmidi.pretty_midi': 'gmidi/pretty_midi',
+            'gmidi.utils': 'gmidi/utils'
+            },
       packages=['gmidi','gmidi.midiarray','gmidi.pypianoroll','gmidi.pretty_midi','gmidi.utils'],
       install_requires=[
           'six>=1.0.0,<2.0',
           'numpy>=1.10.0,<2.0',
           'scipy>=1.0.0,<2.0',
           'mido',
-          'midi',
+          #'python-midi',
           'pandas',
           'pyfluidsynth'
       ],

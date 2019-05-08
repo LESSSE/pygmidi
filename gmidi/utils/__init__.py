@@ -5,8 +5,7 @@
 ##Utilities for gmidi operations
 ##____________
 
-from .pyormidict import *
-from .plot import *
-from .sparray import *
+#from .pyormidict import *
+#from .plot import *
 from .metrics import *
 from .evaltools import *

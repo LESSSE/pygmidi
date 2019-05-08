@@ -16,7 +16,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from scipy.stats import ttest_ind, normaltest
-from pandas.tools.plotting import table
+from pandas.plotting import table
 
 def gcd(a,b):
     """Compute the greatest common divisor of a and b"""
