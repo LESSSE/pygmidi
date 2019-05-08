@@ -50,7 +50,7 @@ class evaltool:
         return pd.DataFrame(self.v,columns=col)
     
     def all_nan(x):
-        return np.sum(np.logical_not(np.isnan(x)),0)==0
+        return np.isnan(x).all()
     
     def add(self,pianoroll,table=False):
         s = len(self.v)
