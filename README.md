@@ -1,5 +1,8 @@
 
 # pygmidi
+
+![pygmidi logo](pygmidi.png)
+
 ### A general representation for midi for symbolic music data-driven approaches
 
 Python General Midi or pygmidi is a facade for the most used representations of midi in python, so you can use it transparently. It includes:
