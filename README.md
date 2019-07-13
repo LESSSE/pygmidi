@@ -20,7 +20,7 @@ ____________________________________________________________
 
 ```
 $ git clone https://github.com/LESSSE/pygmidi
-$ cd gmidi
+$ cd pygmidi
 $ pip install . --user
 ```
 
