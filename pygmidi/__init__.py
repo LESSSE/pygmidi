@@ -6,4 +6,4 @@
 ##____________
 
 from .pygmidi import *
-
+from .versionfile import __version__

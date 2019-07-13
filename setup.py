@@ -6,7 +6,7 @@ def readme():
         return f.read()
 
 VERSION = {}
-with open(os.path.join('gmidi', 'version.py')) as f:
+with open(os.path.join('pygmidi', 'versionfile.py')) as f:
     exec(f.read(), VERSION)
 
 setup(name='pygmidi',
@@ -39,13 +39,12 @@ setup(name='pygmidi',
           'numpy>=1.10.0,<2.0',
           'scipy>=1.0.0,<2.0',
           'mido',
-          'python-midi',
           'pandas',
           'pyfluidsynth'
       ],
       extras_require={
         'plot':  ['matplotlib>=1.5'],
-        'animation': ['moviepy>=0.2.3.2'],
+        'gif': ['moviepy>=0.2.3.2'],
       },
       include_package_data=True,
       zip_safe=False)

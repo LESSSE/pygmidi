@@ -8,3 +8,5 @@ __*
 !__init__.py
 *test.py
 !examples/*.ipynb
+examples/samples/
+!examples/samples/midifile.mid

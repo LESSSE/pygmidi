@@ -58,6 +58,9 @@ class Gmidi(object):
         self._sreprs.update(self._reprs)
         self._sreprs.update({str : _str_repr})
         if self.in_sreprs(src):
+            if isinstance(src,str) and not src.endswith(".mid"):
+                src = src+".mid"
+
             if isinstance(src,str) and not os.path.isfile(src):
                 raise ValueError("If src is a path it should point to a file")
             self._state=src
@@ -84,8 +87,11 @@ class Gmidi(object):
             temp_file = out
             clean = False
         else:
-            s = "gmidi_tmp_lessseesssel_pmt_idimg"
+            s = "pygmidi_tmp_lessseesssel_pmt_idimgyp"
             temp_file = ''.join(random.sample(s,len(s)))
+
+        if not temp_file.endswith(".mid"):
+            temp_file = temp_file+".mid"
                             
         if type(out) is type and isinstance(self._state,out):
             return self._state
@@ -96,14 +102,14 @@ class Gmidi(object):
         try:
             for i in self._sreprs:
                 if isinstance(self._state,i):
-                    self._state=self._sreprs[i]["save"](self._state,temp_file+".mid")
+                    self._state=self._sreprs[i]["save"](self._state,temp_file)
                     break
             if isinstance(out,str):
                 out = str
-            self._state=self._sreprs[out]["load"](temp_file+".mid",self._res)
+            self._state=self._sreprs[out]["load"](temp_file,self._res)
         finally:
             if clean:
-                os.remove(temp_file+".mid")
+                os.remove(temp_file)
         
         return self._state
     
@@ -170,15 +176,21 @@ class Gmidi(object):
  
     def to_gif(self,path):
         self.to(mullib.Multitrack)
+        if not path.endswith(".gif"):
+            path = path+".gif"
         p = self._state.get_merged_pianoroll("max")
         plot.save_animation(path,p,1152,fps=2,hop=24) 
 
     def to_jpg(self,path):
         self.to(mullib.Multitrack)
+        if not path.endswith(".jpg"):
+            path = path+".jpg"
         plot.plot_multitrack(self._state,path)  
 
     def to_wav(self,path,fs=16000):
         #exporting to wav
+        if not path.endswith(".wav"):
+            path = path+".wav"
         try:
             a = self.fluidsynth(fs=fs)
         except:

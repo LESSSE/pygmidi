@@ -109,7 +109,7 @@ def pitch_extension(pianoroll):
 def polyphonic_threshold_factory(threshold=2):
     """Return the number of timesteps where more than threshold notes are being played to the number of not empty timesteps"""
     def polyphonic_threshold(pianoroll):
-      return np.sum(np.sum(np.sum(pianoroll,-1)!=0,-1)>threshold,-1)/(pianoroll.shape[-3]*empty_timesteps(pianoroll))
+      return np.sum(np.sum(np.sum(pianoroll,-1)!=0,-1)>threshold,-1)/(pianoroll.shape[-3]*(1-gmidi.utils.metrics.empty_timesteps(pianoroll)))
     return polyphonic_threshold
 
 def scale_ratio_factory(scale="diato"):
