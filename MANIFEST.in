@@ -1,2 +1,2 @@
 include *.txt
-recursive-include gmidi *.sf2
+recursive-include pygmidi *.sf2
