@@ -1,7 +1,6 @@
+<img src="./images/pygmidi-h.png" alt="pygmidi logo" height="100">
 
 # pygmidi
-
-![pygmidi logo](pygmidi.png)
 
 ### A general representation for midi for symbolic music data-driven approaches
 
