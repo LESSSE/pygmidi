@@ -1,8 +1,8 @@
 
-# Gmidi
+# pygmidi
 ### A general representation for midi for symbolic music data-driven approaches
 
-General Midi or gmidi is a facade for the most used representations of midiin python, so you can use it transparently. It includes:
+Python General Midi or pygmidi is a facade for the most used representations of midi in python, so you can use it transparently. It includes:
 * [midi Pattern](https://github.com/vishnubob/python-midi)
 * [PrettyMidi](https://github.com/craffel/pretty-midi)
 * [pianoroll Multitrack](https://salu133445.github.io/pypianoroll/)
@@ -19,7 +19,7 @@ General Midi or gmidi is a facade for the most used representations of midiin py
 ____________________________________________________________
 
 ```
-$ git clone https://github.com/LESSSE/gmidi
+$ git clone https://github.com/LESSSE/pygmidi
 $ cd gmidi
 $ pip install . --user
 ```
@@ -30,8 +30,8 @@ ____________________________________________________________
 ```
     #!/usr/bin/env python
 
-    from gmidi import gmidi
-    g = gmidi("path_to_midifile.mid")
+    from pygmidi import pygmidi
+    g = pygmidi("path_to_midifile.mid")
     
     g.transpose(-1)
     g.to_npz("new_npz_path")
@@ -45,7 +45,7 @@ ____________________________________________________________
 ```
     #!/usr/bin/env python
 
-    from gmidi import Gmidi,utils,midiarray
+    from pygmidi import pygmidi,utils,midiarray
     from glob import glob
     from os import path
     
@@ -71,7 +71,7 @@ ____________________________________________________________
                 {'program':1,'is_drum':False,"name":"piano"}] #piano
     
     for i in glob('{}/*.mid'.format("midi")):
-         a = Gmidi.process(songs[0],
+         a = pygmidi.process(songs[0],
                   i_to_t=programs_map,
                   t_to_i=tracks_map,
                   ticks=4*24*4,
