@@ -3,7 +3,7 @@
 ##10 November 2018
 ##gmidi
 ##____________
-##Methods for gmidi vizualization adapted from pypianoroll library by Hao-Wen Dong available in https://github.com/salu133445/pypianoroll
+##Methods for pygmidi vizualization adapted from pypianoroll library by Hao-Wen Dong available in https://github.com/salu133445/pypianoroll
 ##____________
 
 """Module for plotting multi-track and single-track piano-rolls.

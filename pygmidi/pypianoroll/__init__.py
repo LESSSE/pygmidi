@@ -26,4 +26,4 @@ from .utilities import (
     check_pianoroll, assign_constant, binarize, clip, copy, load, pad,
     pad_to_multiple, pad_to_same, parse, plot, save, transpose,
     trim_trailing_silence, write)
-from gmidi.pypianoroll import metrics
+from pygmidi.pypianoroll import metrics

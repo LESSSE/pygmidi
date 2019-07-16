@@ -2,7 +2,7 @@
 ##10 November 2018
 ##gmidi
 ##____________
-##Utilities for gmidi operations
+##Utilities for pygmidi operations
 ##____________
 
 #from .pyormidict import *
