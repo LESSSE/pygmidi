@@ -40,7 +40,8 @@ setup(name='pygmidi',
           'scipy>=1.0.0,<2.0',
           'mido',
           'pandas',
-          'pyfluidsynth'
+          'pyfluidsynth',
+          'midi @ git+ssh://git@github.com:LESSSE/python-midi.git@master'
       ],
       extras_require={
         'plot':  ['matplotlib>=1.5'],
