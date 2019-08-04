@@ -35,13 +35,13 @@ setup(name='pygmidi',
             },
       packages=['pygmidi','pygmidi.midiarray','pygmidi.pypianoroll','pygmidi.pretty_midi','pygmidi.utils'],
       install_requires=[
+          'midi @ https://github.com/mgedmin/python-midi.git@python3',
           'six>=1.0.0,<2.0',
           'numpy>=1.10.0,<2.0',
           'scipy>=1.0.0,<2.0',
           'mido',
           'pandas',
-          'pyfluidsynth',
-          'midi @ git+ssh://git@github.com:LESSSE/python-midi.git@master'
+          'pyfluidsynth'
       ],
       extras_require={
         'plot':  ['matplotlib>=1.5'],
