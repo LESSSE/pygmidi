@@ -35,7 +35,7 @@ setup(name='pygmidi',
             },
       packages=['pygmidi','pygmidi.midiarray','pygmidi.pypianoroll','pygmidi.pretty_midi','pygmidi.utils'],
       install_requires=[
-          'midi-0.2.3 @ ssh+git@github.com:mgedmin/python-midi.git@python3',
+          'midi-0.2.3@https://github.com/mgedmin/python-midi/archive/python3.zip',
           'six>=1.0.0,<2.0',
           'numpy>=1.10.0,<2.0',
           'scipy>=1.0.0,<2.0',
