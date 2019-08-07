@@ -2,9 +2,9 @@
 
 # pygmidi
 
-### A general representation for midi for symbolic music data-driven approaches
+### A general representation for MIDI files for symbolic music data-driven approaches
 
-Python General Midi or pygmidi is a facade for the most used representations of midi in python, so you can use it transparently. It includes:
+MIDI files are a common way to represent symbolic music. pygmidi (Python General Midi) is a facade for the most used python packages focused on midi files manipulation, so it can used transparently. For now, it includes:
 * [midi Pattern](https://github.com/vishnubob/python-midi)
 * [PrettyMidi](https://github.com/craffel/pretty-midi)
 * [pianoroll Multitrack](https://salu133445.github.io/pypianoroll/)
