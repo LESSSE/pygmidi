@@ -28,14 +28,14 @@ setup(name='pygmidi',
       license='',
       package_dir = {
             'pygmidi': 'pygmidi',
+            'pygmidi.midi': 'pygmidi/midi',
             'pygmidi.midiarray': 'pygmidi/midiarray',
             'pygmidi.pypianoroll': 'pygmidi/pypianoroll',
             'pygmidi.pretty_midi': 'pygmidi/pretty_midi',
             'pygmidi.utils': 'pygmidi/utils'
             },
-      packages=['pygmidi','pygmidi.midiarray','pygmidi.pypianoroll','pygmidi.pretty_midi','pygmidi.utils'],
+      packages=['pygmidi', 'pygmidi.midi', 'pygmidi.midiarray','pygmidi.pypianoroll','pygmidi.pretty_midi','pygmidi.utils'],
       install_requires=[
-          'midi@git+ssh://git@github.com:mgedmin/python-midi.git@python3',
           'six>=1.0.0,<2.0',
           'numpy>=1.10.0,<2.0',
           'scipy>=1.0.0,<2.0',

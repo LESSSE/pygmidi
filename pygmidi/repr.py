@@ -1,4 +1,4 @@
-import midi as patlib
+from . import midi as patlib
 from . import pretty_midi as prelib
 from . import pypianoroll as mullib
 from . import midiarray as arrlib
