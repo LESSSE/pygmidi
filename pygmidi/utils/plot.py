@@ -11,7 +11,7 @@
 """
 from __future__ import absolute_import, division, print_function
 import numpy as np
-from .. import pretty_midi
+import pretty_midi
 
 try:
     import matplotlib

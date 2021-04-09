@@ -30,7 +30,7 @@ setup(name='pygmidi',
             'pygmidi': 'pygmidi',
             'pygmidi.midi': 'pygmidi/midi',
             'pygmidi.midiarray': 'pygmidi/midiarray',
-            'pygmidi.pypianoroll': 'pygmidi/pypianoroll',
+            'pygmidi.pypianoroll': 'pygmidi/pypianoroll/pypianoroll',
             'pygmidi.pretty_midi': 'pygmidi/pretty_midi',
             'pygmidi.utils': 'pygmidi/utils'
             },
@@ -41,7 +41,8 @@ setup(name='pygmidi',
           'scipy>=1.0.0,<2.0',
           'mido',
           'pandas',
-          'pyfluidsynth'
+          'pyfluidsynth',
+          'scikit-learn'
       ],
       extras_require={
         'plot':  ['matplotlib>=1.5'],
