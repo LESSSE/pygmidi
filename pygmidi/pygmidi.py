@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 from repr import reprs
 from scipy.io import wavfile
 import random
-
+import sys
 
 def vmax(a, v):
     v = v - 1
