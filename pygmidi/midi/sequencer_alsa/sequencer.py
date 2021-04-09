@@ -140,11 +140,12 @@ class Sequencer(object):
         if err < 0: self._error(err)
         self.drain()
 
-    def _set_event_broadcast(self, event):
-        event.source.client = source.client
-        event.source.port = source.port
-        event.dest.client = S.SND_SEQ_ADDRESS_SUBSCRIBERS
-        event.dest.port = S.SND_SEQ_ADDRESS_UNKNOWN
+    def _set_event_broadcast(self, event, source=None):
+        if source is not None:
+            event.source.client = source.client
+            event.source.port = source.port
+            event.dest.client = S.SND_SEQ_ADDRESS_SUBSCRIBERS
+            event.dest.port = S.SND_SEQ_ADDRESS_UNKNOWN
 
     def queue_get_tick_time(self):
         status = S.new_queue_status(self.client, self.queue)

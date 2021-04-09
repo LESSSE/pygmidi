@@ -1,6 +1,8 @@
 import math
 from six import with_metaclass
 
+def cmp(a, b):
+    return (a > b) - (a < b) 
 
 class EventRegistry(object):
     Events = {}

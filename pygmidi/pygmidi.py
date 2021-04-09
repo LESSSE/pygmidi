@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib as mpl
 from . import pretty_midi as prelib
 from . import pypianoroll as mullib
+from . import MidiArray as arrlib
 from .utils import plot
 from .utils import pyormidict
 from .utils import sparray
@@ -30,6 +31,9 @@ def vmax(a,v):
 def vmin(a,v):
     v = v/float(128)
     return a*(a>v)
+
+class MidiError(Exception):
+	pass
 
 class Gmidi(object):
     """Facade for different classes of midi representations
@@ -65,11 +69,11 @@ class Gmidi(object):
                 raise ValueError("If src is a path it should point to a file")
             self._state=src
         else:
-            typeError(type(src))
+            self.typeError(type(src))
         self._res=res
     
-    def typeError(type):
-        raise TypeError('Unknown Representation:'+type+'is not in'+_rerp)
+    def typeError(typeName):
+        raise TypeError('Unknown Representation:'+typeName+'is not in'+_reprs)
     
     def in_sreprs(self,data):
         return isinstance(data,tuple(x for x in self._sreprs))
@@ -115,7 +119,7 @@ class Gmidi(object):
     
     def vel_limit(self,v_min=0,v_max=128):
         self.to(arrlib.MidiArray)
-        self.array = vmax(vmin(self.array,min_vel),max_vel)
+        self.array = vmax(vmin(self.array,v_min),v_max)
 
     def truncate(self,begin, end):
         '''Clip a midifile from a 'begin' tick to the 'end' tick.'''
@@ -250,7 +254,7 @@ class Gmidi(object):
                 inc = ticks_per_clip
                 next_function=next_sliding
             elif mode=="sliding":
-                inc = midifile.resolution
+                inc = self.resolution
                 next_function =next_sliding
 
         midis=[]
