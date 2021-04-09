@@ -72,7 +72,7 @@ class Gmidi(object):
             self.typeError(type(src))
         self._res=res
     
-    def typeError(typeName):
+    def typeError(self, typeName):
         raise TypeError('Unknown Representation:'+ str(typeName) +'is not in'+ str(self._reprs))
     
     def in_sreprs(self,data):
