@@ -14,6 +14,7 @@ with open(os.path.join('pygmidi', 'versionfile.py')) as f:
 setup(name='pygmidi',
       version=VERSION['__version__'],
       description='Python General MIDI representation for symbolic music data analysis',
+      long_description_content_type='text/markdown',
       long_description=open('README.md').read(),
       classifiers=[
           'Development Status :: 2 - Pre-Alpha',
