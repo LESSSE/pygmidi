@@ -11,7 +11,7 @@
 """
 from __future__ import absolute_import, division, print_function
 import numpy as np
-from .. import pretty_midi
+import pretty_midi
 
 try:
     import matplotlib
@@ -551,13 +551,13 @@ def plot_multitrack(multitrack, filepath=None, mode='stacked',
         fig.subplots_adjust(hspace=0)
 
         if track_label != 'none':
-            add_tracklabel(ax1, 'Drums')
-            add_tracklabel(ax2, 'Others')
+            add_tracklabel(axs[0], 'Drums')
+            add_tracklabel(axs[1], 'Others')
 
         if filepath is not None:
             plt.savefig(filepath)
 
-        return (fig, [ax1, ax2])
+        return (fig, axs)
 
 
 def save_animation(filepath, pianoroll, window=1000, hop=24, fps=2, is_drum=False,

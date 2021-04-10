@@ -1,8 +1,16 @@
-from . import midi as patlib
-from . import pretty_midi as prelib
-from . import pypianoroll as mullib
-from . import midiarray as arrlib
+##LESSSE
+##04 Abril 2021
+##gmidi
+##____________
+##Representations
+##____________
+
+import midi as patlib
+import pretty_midi as prelib
+import pypianoroll as mullib
 import mido as fillib
+import midiutil as miulib
+import midiarray.midiarray as arrlib
 import os
 
 #________PrettyMidi________
@@ -11,7 +19,7 @@ def pretty_save(src,path):
     return path
 
 def pretty_load(path,res):
-    midi_data = prelib.PrettyMIDI(path,resolution=res)
+    midi_data = prelib.PrettyMIDI(path, resolution=res)
     return midi_data
 
 pretty_repr = {"load": pretty_load, 
@@ -54,10 +62,9 @@ def multitrack_save(src,path):
     return path
 
 def multitrack_load(path,res):
-    mul = mullib.Multitrack(beat_resolution=res,name=os.path.basename(path))
-    pretty = pretty_load(path,res)
-    mul.parse_pretty_midi(pretty,skip_empty_tracks=False)
-
+    pretty = prelib.PrettyMIDI(path,resolution=res)
+    mul = mullib.from_pretty_midi(pretty, resolution=res)
+    
     for t in mul.tracks:
         if t.name == "":
             if t.is_drum:
