@@ -44,11 +44,11 @@ setup(name='pygmidi',
           'scikit-learn',
           'six>=1.0.0',
           'matplotlib',
-          'mido @ git+https://github.com/LESSSE/mido.git',
-          'pypianoroll @ git+https://github.com/LESSSE/pypianoroll.git',
-          'midi @ git+https://github.com/LESSSE/python3-midi.git',
-          'pretty_midi @ git+https://github.com/LESSSE/pretty-midi.git',
-          'MIDIUtil @ git+https://github.com/LESSSE/MIDIUtil.git'
+          'mido',
+          'pypianoroll',
+          'python3-midi',
+          'pretty_midi',
+          'MIDIUtil'
       ],
       extras_require={
           'plot': ['matplotlib>=1.5'],
