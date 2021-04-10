@@ -8,7 +8,8 @@
 
 import pretty_midi
 import pypianoroll
-import midi
+import python3_midi
+import python3_midi as midi
 
 from .pygmidi import *
 from .versionfile import __version__

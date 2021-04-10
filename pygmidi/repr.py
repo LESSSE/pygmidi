@@ -5,7 +5,7 @@
 ##Representations
 ##____________
 
-import midi as patlib
+import python3_midi as patlib
 import pretty_midi as prelib
 import pypianoroll as mullib
 import mido as fillib
