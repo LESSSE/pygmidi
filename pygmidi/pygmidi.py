@@ -7,6 +7,7 @@
 
 import sys
 import pathlib
+
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 import shutil
@@ -226,10 +227,8 @@ class Pygmidi(object):
         self.dims
         mul = self.to(mullib.Multitrack)
         new_mul = mul.copy()
-
         new_mul.tracks = []
-        new_mul.tracks += [mullib.StandardTrack(pianoroll=np.ones(mul.tracks[0].pianoroll.shape))]
-        # print([i.name for i in new_mul.tracks])
+
         for t in range(len(t_to_i)):
             program = t_to_i[t]["program"]
             is_drum = t_to_i[t]["is_drum"]
@@ -238,23 +237,40 @@ class Pygmidi(object):
             if is_drum:
                 name = "Drums"
 
-            new_mul.tracks += [mullib.StandardTrack(pianoroll=np.zeros(mul.tracks[0].pianoroll.shape),
-                                                    program=program,
-                                                    is_drum=is_drum,
-                                                    name=name)]
+            tmp_mul = mul.copy()
+            tmp_mul.tracks = []
+
             for i in mul.tracks:
                 if i_to_t.get((i.program, i.is_drum), i_to_t.get((128, i.is_drum), None)) == t:
-                    new_mul.tracks += [i]
-            new_mul.merge_tracks(list(range(t + 1, len(new_mul.tracks))),
-                                 program=program,
-                                 is_drum=is_drum,
-                                 name=name,
-                                 remove_merged=True)
+                    tmp_mul.tracks += [i]
 
-        new_mul.tracks = new_mul.tracks[1:]
+            if tmp_mul.tracks:
+                pianoroll = tmp_mul.blend()
+
+                track = mullib.StandardTrack(pianoroll=pianoroll,
+                                             program=program,
+                                             is_drum=is_drum,
+                                             name=name)
+                new_mul.tracks += [track]
+
         self._state = new_mul
 
         return self._state
+
+    def copy_mul(self):
+        self.to(mullib.Multitrack)
+        mul = self._state  # old_pattern
+        new_mul = Pygmidi(mul.copy())
+        for i in range(len(new_mul.tracks)):
+            if not isinstance(new_mul.tracks[i], mullib.StandardTrack) and \
+                    not isinstance(new_mul.tracks[i], mullib.BinaryTrack):
+                new_mul.tracks[i] = mullib.StandardTrack(
+                    pianoroll=new_mul.tracks[i].pianoroll,
+                    name=new_mul.tracks[i].name,
+                    program=new_mul.tracks[i].program,
+                    is_drum=new_mul.tracks[i].is_drum
+                )
+        return new_mul
 
     def chop(self, ticks_per_clip, mode="chuncking", next_function=None):
         def next_sliding(b, e, midifile):
@@ -271,15 +287,15 @@ class Pygmidi(object):
         midis = []
         n = 0
         b, e = 0, ticks_per_clip
-        self.to(mullib.Multitrack)
-        mul = self._state  # old_pattern
-        new_mul = Pygmidi(mullib.copy(mul))
-        ticks = mul.tracks[0].pianoroll.shape[0]
+        new_mul = self.copy_mul()
+
+
+        ticks = new_mul.tracks[0].pianoroll.shape[0]
         while (e <= ticks):
             new_mul.truncate(b, e)
             midis += [new_mul]
-            b, e = next_function(b, e, mul)
-            new_mul = Pygmidi(mullib.copy(mul))
+            b, e = next_function(b, e, self._state)
+            new_mul = self.copy_mul()
             n += 1
         return midis
 
