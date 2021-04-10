@@ -5,22 +5,20 @@
 ##Main class 
 ##____________
 
-import set_import_path
 import shutil
 import os.path
 import numpy as np
-import matplotlib as mpl
 import pretty_midi as prelib
 import pypianoroll as mullib
 import midiarray as arrlib
 from utils import plot
 from utils import pyormidict
 from utils import sparray
-from matplotlib import pyplot as plt
 from repr import reprs
 from scipy.io import wavfile
 import random
 import sys
+
 
 def vmax(a, v):
     v = v - 1

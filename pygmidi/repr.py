@@ -5,12 +5,12 @@
 ##Representations
 ##____________
 
-import set_import_path
 import midi as patlib
 import pretty_midi as prelib
 import pypianoroll as mullib
-import midiarray as arrlib
 import mido as fillib
+import midiutil as miulib
+import midiarray.midiarray as arrlib
 import os
 
 #________PrettyMidi________

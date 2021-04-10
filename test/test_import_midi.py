@@ -4,8 +4,6 @@ sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "pygmidi"))
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-import set_import_path
-
 #_________________________________
 def test_pypianoroll():
  	import repr

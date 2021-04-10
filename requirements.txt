@@ -1,7 +1,13 @@
 six>=1.0.0
 numpy>=1.10.0
 scipy>=1.0.0
-mido
 pandas
 pyfluidsynth
 scikit-learn
+matplotlib
+git+https://github.com/LESSSE/mido.git
+git+https://github.com/LESSSE/pypianoroll.git
+git+https://github.com/LESSSE/python3-midi.git
+git+https://github.com/LESSSE/pretty-midi.git
+git+https://github.com/LESSSE/MIDIUtil.git
+
