@@ -10,7 +10,7 @@ import pretty_midi as prelib
 import pypianoroll as mullib
 import mido as fillib
 import midiutil as miulib
-import midiarray.midiarray as arrlib
+from midiarray import midiarray as arrlib
 import os
 
 #________PrettyMidi________

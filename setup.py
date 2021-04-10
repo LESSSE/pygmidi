@@ -1,9 +1,11 @@
 from setuptools import setup
 import os
 
+
 def readme():
     with open('README.txt') as f:
         return f.read()
+
 
 VERSION = {}
 with open(os.path.join('pygmidi', 'versionfile.py')) as f:
@@ -11,30 +13,27 @@ with open(os.path.join('pygmidi', 'versionfile.py')) as f:
 
 setup(name='pygmidi',
       version=VERSION['__version__'],
-      description='Python General MIDI representation for symbolic musci data analysis',
+      description='Python General MIDI representation for symbolic music data analysis',
       long_description=open('README.md').read(),
       classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'License :: Free for non-commercial use',
-        'Programming Language :: Python :: 2.7',
-        'Intended Audience :: Education',
-        'Topic :: Artistic Software',
-        'Topic :: Multimedia :: Sound/Audio :: MIDI'
+          'Development Status :: 2 - Pre-Alpha',
+          'License :: Free for non-commercial use',
+          'Programming Language :: Python :: 2.7',
+          'Intended Audience :: Education',
+          'Topic :: Artistic Software',
+          'Topic :: Multimedia :: Sound/Audio :: MIDI'
       ],
-      keywords=['general','midi','dataset','music','symbolic','pygmidi'],
+      keywords=['general', 'midi', 'dataset', 'music', 'symbolic', 'pygmidi'],
       url='http://github.com/LESSSE/pygmidi',
       author='Luís Espírito Santo (LESSSE)',
       author_email='luis.a.santo@tecnico.ulisboa.pt',
       license='',
-      package_dir = {
-            'pygmidi': 'pygmidi',
-            'pygmidi.midi': 'pygmidi/midi',
-            'pygmidi.midiarray': 'pygmidi/midiarray',
-            'pygmidi.pypianoroll': 'pygmidi/pypianoroll/pypianoroll',
-            'pygmidi.pretty_midi': 'pygmidi/pretty_midi',
-            'pygmidi.utils': 'pygmidi/utils'
-            },
-      packages=['pygmidi', 'pygmidi.midi', 'pygmidi.midiarray','pygmidi.pypianoroll','pygmidi.pretty_midi','pygmidi.utils'],
+      package_dir={
+          'pygmidi': 'pygmidi',
+          'pygmidi.midiarray': 'pygmidi/midiarray',
+          'pygmidi.utils': 'pygmidi/utils'
+      },
+      packages=['pygmidi', 'pygmidi.midiarray', 'pygmidi.utils'],
       install_requires=[
           'six>=1.0.0,<2.0',
           'numpy>=1.10.0,<2.0',
@@ -42,11 +41,18 @@ setup(name='pygmidi',
           'mido',
           'pandas',
           'pyfluidsynth',
-          'scikit-learn'
+          'scikit-learn',
+          'six>=1.0.0',
+          'matplotlib',
+          'mido @ git+https://github.com/LESSSE/mido.git',
+          'pypianoroll @ git+https://github.com/LESSSE/pypianoroll.git',
+          'midi @ git+https://github.com/LESSSE/python3-midi.git',
+          'pretty_midi @ git+https://github.com/LESSSE/pretty-midi.git',
+          'MIDIUtil @ git+https://github.com/LESSSE/MIDIUtil.git'
       ],
       extras_require={
-        'plot':  ['matplotlib>=1.5'],
-        'gif': ['moviepy>=0.2.3.2'],
+          'plot': ['matplotlib>=1.5'],
+          'gif': ['moviepy>=0.2.3.2'],
       },
       include_package_data=True,
       zip_safe=False)

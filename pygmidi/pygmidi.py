@@ -5,16 +5,20 @@
 ##Main class 
 ##____________
 
+import sys
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
+
 import shutil
 import os.path
 import numpy as np
 import pretty_midi as prelib
 import pypianoroll as mullib
-import midiarray as arrlib
-from utils import plot
-from utils import pyormidict
-from utils import sparray
-from repr import reprs
+from . import midiarray as arrlib
+from .utils import plot
+from .utils import pyormidict
+from .utils import sparray
+from .repr import reprs
 from scipy.io import wavfile
 import random
 import sys
